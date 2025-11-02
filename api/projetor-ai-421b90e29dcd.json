@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "projetor-ai",
+  "private_key_id": "421b90e29dcddad030066f20e76338a134ba9a70",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC4nQmBcwzJUNVQ\njjZrKv9hGa+SN4SSitLqBj0SVJAxzT1+VcJxRi+jACw0Wr56gaYLeodfPQ8IPUkE\nvrgZ9D2Qu81HHW0Xej4Jr6cpPVP0OTkP0D0YyIVNl7T8+iEh6hCHarnYD2XepIA9\nabK89IqctYHoI5UpGzOTcdH87g2Ua3OsUuTZctFHln9aSH8PUMGU+ff1WI0FDXAl\nMNRJJkJVlrKMras5W2PckGPpXjW+/Nt5+26614QowuyEyiLHJsa3CopGXUnj0Cna\nhC0oABgs1PTFsH0GcTW/9QVeiplIyUlrN5c9Ofy/mS+Z3F/8Wj5Z2HCGpEysbVZB\nS0MFuM41AgMBAAECggEABg4CCzPTXiFMWoL/hLSsgYPB8ieBLck0MUBMVBCTIuVn\nUebM8Y6EVQujARvEyYHJ1b1XOUFoZjQt8+QWNHIbnsz6AFri6NucGaps7t/rCl4V\nSANKLa9N5+vE0zmYFcoQCeqIw9RL2mlGWqOsnNPfkLotoFTVn7tO2rqBHfmBioK/\nyJA+eHzMCvndBcGCVcIDRK0Zwk0sTA09O9+XXe1jFY4hLIf3MMtRoouWGdDd2O+o\nut2dAC8lMJFjk7Aw5goX6ZU5Rl9P3HqGv33L2rYNDYPOOkKw0IvZJqiRDyGQHsWz\n4rvteScUOruNHD4dTiVYlDeQMcWzfzKENmRinf1IgQKBgQDls5WXRiUYD//swZEL\n5vAQY6oovmigueg4BQbrBRtXsgu5OEE5tZbcXvaGuF96InqJQ7WgPHIjNSyhheok\nL809+VhOJRPcY641Zw/KH9oISuTduyD3uUl4JY99CpNHIQ4pwW3Ck5AFx0PrmScJ\nWKF5A2NGifns8wGT87VJrGdOYQKBgQDNv/KoOJAYkv+9o1lGs1RZl/t03OEtoWhJ\nsRvsd6rYwaaE3Rbv0PslfCtUuQ/sfawqgxO6UWfDjilYFnYQ26T0tfA1jlbPmEnH\nnlaeGBiPX97TsUpumJBTR3BzwlkfSDgy4dAYO3Ohz10rQP9Ipk/lz0JCDa+VGDOW\nvv75YDDIVQKBgQCGXiwWpsjSL6HVHFI99STfYX3Lgb7wrm+iPYaTepRJE3T6L2cw\nXAJY/RAXNMldR8gIfdxEVLer0tI91nlmG7RjGXZHmDbrCECDKru40DMaAL2q22lo\noDHTH521Vrdat4JyeJ09YlawmqUnr5p/RCKJCKtNOy9BJdH5e2nEJB72YQKBgQCr\n91rhryUA5RxLbFQZ+5jsqVLKgjLS6K05qoYkRoDNWk3Ljt604n6G/hlZXrQofYGA\npr2+ZHvNvuxfa6aSwIJG5io3GRkFucswxO6whINCkmazmOMVPP6kHHmoxy+mLb6L\nCKHdHxOukprUpCa6mgb9lRVUEAxJGUlFHa4O0I71YQKBgQDgCpzEWfy3jueni39s\n340KtqdKrkXIl35l2kaeuhBvvpxzResYGar14sinYeE9oARapAJJgg6UxiY0u1WP\nG+xH6jdBbKevVFdgtEkklh9zYzNCVRoNbngmiYvuirkHtjqeyC8SXrSahLZOwG5L\nfYzf/udp68iG3MQJVvACq8b8+Q==\n-----END PRIVATE KEY-----\n",
+  "client_email": "jonatajesus@projetor-ai.iam.gserviceaccount.com",
+  "client_id": "112202251828264513392",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/jonatajesus%40projetor-ai.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}
