@@ -1,5 +1,4 @@
 import customtkinter as ctk
-import speech_recognition as sr
 from screeninfo import get_monitors
 from tkinter import messagebox
 
@@ -121,11 +120,6 @@ class SettingsDialog(ctk.CTkToplevel):
 
         self.tab_view = ctk.CTkTabview(self, width=530)
         self.tab_view.pack(pady=10, padx=10, fill="both", expand=True)
-        
-        self.audio_tab = self.tab_view.add("Áudio (Modo IA)")
-        self.projection_tab = self.tab_view.add("Projeção")
-
-        self._create_audio_settings_tab(self.audio_tab)
         self._create_projection_settings_tab(self.projection_tab)
         
         button_frame = ctk.CTkFrame(self, fg_color="transparent")
@@ -141,46 +135,6 @@ class SettingsDialog(ctk.CTkToplevel):
         self.protocol("WM_DELETE_WINDOW", self.destroy) 
         self.after(50, self._center_window_on_master)
         self.focus_force()
-
-    def _create_audio_settings_tab(self, tab_frame):
-        tab_frame.grid_columnconfigure(1, weight=1)
-        ctk.CTkLabel(tab_frame, text="Dispositivo de Entrada (Mic):").grid(row=0, column=0, padx=10, pady=(20,5), sticky="w")
-        
-        self.mic_names_full = ["Padrão do Sistema"] 
-        self.mic_indices_map = {"Padrão do Sistema": ""} 
-        
-        if sr:
-            try:
-                available_mics = sr.Microphone.list_microphone_names()
-                for i, name in enumerate(available_mics):
-                    display_name = f"{i}: {name[:60]}"
-                    self.mic_names_full.append(display_name)
-                    self.mic_indices_map[display_name] = str(i)
-            except Exception as e:
-                print(f"Erro ao listar microfones em SettingsDialog: {e}")
-                self.mic_names_full.append("Erro ao listar microfones")
-        else:
-            self.mic_names_full.append("SpeechRecognition não disponível")
-
-        self.selected_mic_var = ctk.StringVar()
-        current_mic_index_str = self.config_manager.get_setting('Audio', 'input_device_index', '')
-        
-        current_mic_display_name = "Padrão do Sistema"
-        if current_mic_index_str:
-            for display_name, index_str_map in self.mic_indices_map.items():
-                if index_str_map == current_mic_index_str:
-                    current_mic_display_name = display_name
-                    break
-        self.selected_mic_var.set(current_mic_display_name)
-
-        self.mic_optionmenu = ctk.CTkOptionMenu(tab_frame, variable=self.selected_mic_var, values=self.mic_names_full, width=300, dynamic_resizing=False)
-        self.mic_optionmenu.grid(row=0, column=1, padx=10, pady=(20,5), sticky="ew")
-
-        ctk.CTkLabel(tab_frame, text="Limiar de Energia (Ruído):").grid(row=1, column=0, padx=10, pady=10, sticky="w")
-        self.energy_threshold_var = ctk.StringVar(value=self.config_manager.get_setting('Audio', 'energy_threshold', '3000'))
-        self.energy_entry = ctk.CTkEntry(tab_frame, textvariable=self.energy_threshold_var)
-        self.energy_entry.grid(row=1, column=1, padx=10, pady=10, sticky="ew")
-        ctk.CTkLabel(tab_frame, text="(Ex: 300-8000. Menor = mais sensível)", font=ctk.CTkFont(size=10)).grid(row=2, column=1, padx=10, pady=(0,10), sticky="w")
 
     def _create_projection_settings_tab(self, tab_frame):
         tab_frame.grid_columnconfigure(1, weight=1)
@@ -218,33 +172,6 @@ class SettingsDialog(ctk.CTkToplevel):
         self.monitor_optionmenu = ctk.CTkOptionMenu(tab_frame, variable=self.selected_monitor_var, values=self.monitor_display_list, width=300, dynamic_resizing=False)
         self.monitor_optionmenu.grid(row=0, column=1, padx=10, pady=(20,5), sticky="ew")
         ctk.CTkLabel(tab_frame, text="Automático tentará o 2º monitor não primário,\n senão o primário.", font=ctk.CTkFont(size=10)).grid(row=1, column=1, padx=10, pady=(0,10), sticky="w")
-
-    def on_save(self):
-        selected_mic_display = self.selected_mic_var.get()
-        mic_index_to_save = self.mic_indices_map.get(selected_mic_display, "") 
-        self.config_manager.set_setting('Audio', 'input_device_index', mic_index_to_save)
-
-        energy_val = self.energy_entry.get()
-        if energy_val.isdigit() and int(energy_val) >= 0:
-            self.config_manager.set_setting('Audio', 'energy_threshold', energy_val)
-        else:
-            messagebox.showwarning("Valor Inválido", "Limiar de energia deve ser um número inteiro não negativo.", parent=self)
-            self.energy_entry.focus()
-            return 
-
-        selected_monitor_display = self.selected_monitor_var.get()
-        monitor_index_to_save = self.monitor_map_for_saving.get(selected_monitor_display, "") 
-        self.config_manager.set_setting('Display', 'projection_monitor_index', monitor_index_to_save)
-        
-        messagebox.showinfo("Configurações Salvas", 
-                            "As configurações foram salvas.\n\n"
-                            "Para que as configurações de áudio tenham efeito,\n"
-                            "o Modo IA pode precisar ser desativado e reativado.\n\n"
-                            "O monitor de projeção será usado na próxima vez\n"
-                            "que a projeção for aberta.",
-                            parent=self)
-
-        self.destroy()
 
     def _center_window_on_master(self):
         self.after(20, self._do_center) 

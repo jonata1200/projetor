@@ -18,11 +18,6 @@ class ConfigManager:
 
     def _create_default_config(self):
         """Cria um arquivo de configuração com valores padrão."""
-        self.config['Audio'] = {
-            'input_device_index': '',
-            'energy_threshold': '3000'
-        }
-
         with open(CONFIG_PATH, 'w') as configfile:
             self.config.write(configfile)
 

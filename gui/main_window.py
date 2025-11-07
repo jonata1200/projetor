@@ -48,12 +48,6 @@ class MainWindow(ctk.CTk):
         self.btn_clear_projection = ctk.CTkButton(top_frame, text="Limpar Tela")
         self.btn_clear_projection.pack(side="left", padx=5)
 
-        self.btn_toggle_ia_mode = ctk.CTkButton(top_frame, text="Modo IA: OFF", state="disabled")
-        self.btn_toggle_ia_mode.pack(side="left", padx=10)
-        
-        self.ia_status_label = ctk.CTkLabel(top_frame, text="IA Status: -", width=180, anchor="w")
-        self.ia_status_label.pack(side="left", padx=5)
-
         self.theme_button = ctk.CTkButton(top_frame, text="Tema", command=self.toggle_theme)
         self.theme_button.pack(side="right", padx=5)
 
@@ -167,9 +161,7 @@ class MainWindow(ctk.CTk):
             "btn_prev": self.btn_prev_slide,
             "btn_next": self.btn_next_slide,
             "btn_projection": self.btn_projection_control,
-            "btn_clear": self.btn_clear_projection,
-            "btn_ia_toggle": self.btn_toggle_ia_mode,
-            "ia_status_label": self.ia_status_label
+            "btn_clear": self.btn_clear_projection
         }
         self.presentation_controller = PresentationController(self, presentation_ui, self.config_manager)
 
@@ -201,7 +193,6 @@ class MainWindow(ctk.CTk):
         """Abre o diálogo de configurações e, ao fechar, notifica o controlador para aplicar as mudanças."""
         dialog = SettingsDialog(master=self, config_manager=self.config_manager)
         dialog.wait_window()
-        self.presentation_controller.apply_audio_settings()
 
     def toggle_theme(self):
         """Alterna entre os temas Claro e Escuro."""

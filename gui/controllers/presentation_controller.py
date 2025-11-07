@@ -2,17 +2,13 @@ import customtkinter as ctk
 from tkinter import messagebox
 from screeninfo import get_monitors
 from gui.projection_window import ProjectionWindow
-from core.ia_sync_engine import IASyncEngine
 
 class PresentationController:
     def __init__(self, master, ui_elements, config_manager):
         self.master = master
         self.ui = ui_elements
-        self.config_manager = config_manager
-        
+        self.config_manager = config_manager 
         self.projection_window = None
-        self.ia_sync_engine = None
-        self.ia_mode_active = False
 
         self.slides = []
         self.current_index = -1
@@ -20,29 +16,22 @@ class PresentationController:
         self.content_id = None
 
         self._setup_callbacks()
-        self.apply_audio_settings()
 
     def _setup_callbacks(self):
         self.ui["btn_prev"].configure(command=self.prev_slide)
         self.ui["btn_next"].configure(command=self.next_slide)
         self.ui["btn_projection"].configure(command=self.handle_projection_button)
         self.ui["btn_clear"].configure(command=self.clear_projection_content)
-        self.ui["btn_ia_toggle"].configure(command=self.toggle_ia_mode)
     
     def load_content(self, content_type, slides, content_id=None):
         """Ponto de entrada central para carregar novo conteúdo (música ou bíblia)."""
         self.content_type = content_type
         self.slides = slides if slides else []
         self.content_id = content_id
-        
-        if self.ia_mode_active and self.content_type != "music":
-            self.toggle_ia_mode()
 
         if self.slides:
             self.current_index = 0
             self.update_slide_view()
-            if self.ia_mode_active and self.ia_sync_engine:
-                 self.ia_sync_engine.update_current_slide(self.current_index, self.slides)
         else:
             self.current_index = -1
             self.clear_slide_view()
@@ -70,28 +59,21 @@ class PresentationController:
         if self.slides and self.current_index < len(self.slides) - 1:
             self.current_index += 1
             self.update_slide_view()
-            if self.ia_mode_active:
-                self.ia_sync_engine.update_current_slide(self.current_index)
 
     def prev_slide(self):
         if self.slides and self.current_index > 0:
             self.current_index -= 1
             self.update_slide_view()
-            if self.ia_mode_active:
-                self.ia_sync_engine.update_current_slide(self.current_index)
 
     def go_to_slide(self, index):
         if self.slides and 0 <= index < len(self.slides):
             self.current_index = index
             self.update_slide_view()
-            if self.ia_mode_active:
-                self.ia_sync_engine.update_current_slide(self.current_index)
 
     def update_controls_state(self):
         has_slides = bool(self.slides)
         self.ui["btn_prev"].configure(state="normal" if has_slides else "disabled")
         self.ui["btn_next"].configure(state="normal" if has_slides else "disabled")
-        self.ui["btn_ia_toggle"].configure(state="normal" if self.content_type == "music" and has_slides else "disabled")
 
     def handle_projection_button(self):
         """
@@ -175,43 +157,5 @@ class PresentationController:
         if self.projection_window and self.projection_window.winfo_exists():
             self.projection_window.clear_content()
         
-    def apply_audio_settings(self):
-        """(Re)Cria o motor de IA com as configurações atuais."""
-        if self.ia_mode_active and self.ia_sync_engine:
-            self.ia_sync_engine.stop_listening()
-        
-        mic_idx_str = self.config_manager.get_setting('Audio', 'input_device_index', '')
-        mic_idx = int(mic_idx_str) if mic_idx_str.isdigit() else None
-        energy = self.config_manager.get_int_setting('Audio', 'energy_threshold', 3000)
-
-        self.ia_sync_engine = IASyncEngine(
-            self.ia_request_goto_slide,
-            self.ia_update_status_label,
-            input_device_index=mic_idx,
-            energy_threshold_for_sr=energy
-        )
-
-    def toggle_ia_mode(self):
-        if self.ia_mode_active:
-            if self.ia_sync_engine: self.ia_sync_engine.stop_listening()
-            self.ia_mode_active = False
-            self.ui["btn_ia_toggle"].configure(text="Modo IA: OFF", fg_color=ctk.ThemeManager.theme["CTkButton"]["fg_color"])
-            self.ia_update_status_label("IA: Parado.")
-        else:
-            if self.content_type == "music" and self.slides and self.ia_sync_engine:
-                self.ia_sync_engine.start_listening(self.slides, self.current_index)
-                self.ia_mode_active = True
-                self.ui["btn_ia_toggle"].configure(text="Modo IA: ON", fg_color="green")
-            else:
-                messagebox.showwarning("Modo IA", "Selecione uma música para ativar o Modo IA.")
-
-    def ia_request_goto_slide(self, index):
-        self.master.after(0, lambda: self.go_to_slide(index))
-
-    def ia_update_status_label(self, text):
-        self.master.after(0, lambda: self.ui["ia_status_label"].configure(text=text))
-        
     def on_closing(self):
-        if self.ia_mode_active and self.ia_sync_engine:
-            self.ia_sync_engine.stop_listening()
         self.close_projection_window()

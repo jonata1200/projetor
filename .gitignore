@@ -4,7 +4,7 @@ __pycache__/
 *$py.class
 
 # Ignora ambiente virtual (se houver)
-venv/
+.venv/
 .env/
 .env*/ 
 
