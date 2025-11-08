@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from screeninfo import get_monitors
 from tkinter import messagebox
+from tkinter.colorchooser import askcolor
 
 class AddEditSongDialog(ctk.CTkToplevel):
     def __init__(self, master, dialog_title="Nova Música", song_data=None):
@@ -116,7 +117,7 @@ class SettingsDialog(ctk.CTkToplevel):
         self.transient(master)
         self.grab_set()
         self.title("Configurações")
-        self.geometry("550x280")
+        self.geometry("550x420")
         self.resizable(False, False)
 
         main_settings_frame = ctk.CTkFrame(self)
@@ -140,12 +141,11 @@ class SettingsDialog(ctk.CTkToplevel):
     def _create_projection_settings_tab(self, tab_frame):
         tab_frame.grid_columnconfigure(1, weight=1)
 
-        # --- Monitor para Projeção ---
+        # --- Monitor para Projeção (continua o mesmo) ---
+        # ... (todo o código para o seletor de monitor permanece aqui, sem alterações)
         ctk.CTkLabel(tab_frame, text="Monitor para Projeção:").grid(row=0, column=0, padx=10, pady=(20,5), sticky="w")
-
-        # Preparação da lista de monitores
         self.monitor_display_list = ["Automático (Recomendado)"]
-        self.monitor_map_for_saving = {"Automático (Recomendado)": ""}
+        self.monitor_map_for_saving = {"Automático (Recomendado)": ""} 
         try:
             monitors = get_monitors()
             if monitors:
@@ -156,36 +156,21 @@ class SettingsDialog(ctk.CTkToplevel):
                     self.monitor_map_for_saving[display_name] = str(i)
         except Exception as e:
             print(f"Erro ao listar monitores para configurações: {e}")
-            self.monitor_display_list.append("Erro ao listar monitores")
-
-        # Preparação da variável de controle
         self.selected_monitor_var = ctk.StringVar()
         current_proj_monitor_idx_str = self.config_manager.get_setting('Display', 'projection_monitor_index', '')
         current_monitor_display_name = "Automático (Recomendado)"
         if current_proj_monitor_idx_str:
             for display_name, index_str_map in self.monitor_map_for_saving.items():
                 if index_str_map == current_proj_monitor_idx_str:
-                    current_monitor_display_name = display_name
-                    break
+                    current_monitor_display_name = display_name; break
         self.selected_monitor_var.set(current_monitor_display_name)
-
-        # ###############################################################
-        # ############# A LINHA CRÍTICA QUE ESTAVA FALTANDO #############
-        # ###############################################################
-        # Criação do widget CTkOptionMenu e atribuição a self.monitor_optionmenu
         self.monitor_optionmenu = ctk.CTkOptionMenu(tab_frame, variable=self.selected_monitor_var, values=self.monitor_display_list, width=300, dynamic_resizing=False)
-        # ###############################################################
-
-        # Agora, a linha do grid pode usar o widget que acabamos de criar
         self.monitor_optionmenu.grid(row=0, column=1, padx=10, pady=(20,5), sticky="ew")
-        
-        # O resto do layout...
         ctk.CTkLabel(tab_frame, text="Automático tentará o 2º monitor não primário,\n senão o primário.", font=ctk.CTkFont(size=10)).grid(row=1, column=1, padx=10, pady=(0,10), sticky="w")
-
-        # --- SEPARADOR VISUAL ---
         ctk.CTkFrame(tab_frame, height=2, fg_color="gray50").grid(row=2, column=0, columnspan=2, pady=15, sticky="ew")
 
-        # --- OPÇÕES DE APARÊNCIA (código continua o mesmo daqui para baixo) ---
+        # --- OPÇÕES DE APARÊNCIA (COM SELETOR DE COR) ---
+        
         # Tamanho da Fonte
         ctk.CTkLabel(tab_frame, text="Tamanho da Fonte:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
         self.font_size_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'font_size', '60'))
@@ -194,18 +179,42 @@ class SettingsDialog(ctk.CTkToplevel):
 
         # Cor da Fonte
         ctk.CTkLabel(tab_frame, text="Cor da Fonte:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        font_color_frame = ctk.CTkFrame(tab_frame, fg_color="transparent")
+        font_color_frame.grid(row=4, column=1, padx=10, pady=5, sticky="ew")
+        font_color_frame.grid_columnconfigure(0, weight=1)
         self.font_color_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'font_color', 'white'))
-        self.font_color_entry = ctk.CTkEntry(tab_frame, textvariable=self.font_color_var)
-        self.font_color_entry.grid(row=4, column=1, padx=10, pady=5, sticky="ew")
-        
+        self.font_color_entry = ctk.CTkEntry(font_color_frame, textvariable=self.font_color_var)
+        self.font_color_entry.grid(row=0, column=0, sticky="ew")
+        ctk.CTkButton(font_color_frame, text="Escolher...", width=80, command=lambda: self._pick_color(self.font_color_var)).grid(row=0, column=1, padx=(10,0)) # <-- NOVO BOTÃO
+
         # Cor de Fundo
         ctk.CTkLabel(tab_frame, text="Cor de Fundo:").grid(row=5, column=0, padx=10, pady=5, sticky="w")
+        bg_color_frame = ctk.CTkFrame(tab_frame, fg_color="transparent")
+        bg_color_frame.grid(row=5, column=1, padx=10, pady=5, sticky="ew")
+        bg_color_frame.grid_columnconfigure(0, weight=1)
         self.bg_color_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'bg_color', 'black'))
-        self.bg_color_entry = ctk.CTkEntry(tab_frame, textvariable=self.bg_color_var)
-        self.bg_color_entry.grid(row=5, column=1, padx=10, pady=5, sticky="ew")
+        self.bg_color_entry = ctk.CTkEntry(bg_color_frame, textvariable=self.bg_color_var)
+        self.bg_color_entry.grid(row=0, column=0, sticky="ew")
+        ctk.CTkButton(bg_color_frame, text="Escolher...", width=80, command=lambda: self._pick_color(self.bg_color_var)).grid(row=0, column=1, padx=(10,0)) # <-- NOVO BOTÃO
 
-        ctk.CTkLabel(tab_frame, text="Use nomes de cores em inglês (ex: white, blue)\n ou códigos hex (ex: #FFFFFF, #0000FF).", font=ctk.CTkFont(size=10)).grid(row=6, column=1, padx=10, pady=(0,10), sticky="w")
+        ctk.CTkLabel(tab_frame, text="Use o botão 'Escolher' ou digite um nome de cor\n em inglês (ex: white) ou código hex (ex: #FFFFFF).", font=ctk.CTkFont(size=10)).grid(row=6, column=1, padx=10, pady=(0,10), sticky="w")
     
+    def _pick_color(self, string_var_to_update):
+        """
+        Abre o diálogo do seletor de cores e atualiza a
+        StringVar fornecida com o código hexadecimal da cor selecionada.
+        """
+        # O askcolor() retorna uma tupla: ((R, G, B), '#RRGGBB')
+        # Se o usuário cancelar, retorna (None, None)
+        color_info = askcolor(parent=self)
+        
+        # A segunda parte (color_info[1]) é o código hexadecimal
+        chosen_color_hex = color_info[1]
+
+        # Verifica se uma cor foi realmente escolhida antes de atualizar
+        if chosen_color_hex:
+            string_var_to_update.set(chosen_color_hex)
+
     def on_save(self):
         """Salva as configurações de projeção no arquivo de configuração."""
         # Salva a configuração do monitor (já existente)
