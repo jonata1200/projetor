@@ -23,22 +23,38 @@ class ProjectionWindow(ctk.CTkToplevel):
     NUM_SNOWFLAKES = 150
     ANIMATION_DELAY_MS = 30
 
-    def __init__(self, master, controller, target_monitor_geometry, on_ready_callback=None):
+    def __init__(self, master, controller, target_monitor_geometry, config_manager, on_ready_callback=None):
         super().__init__(master)
         self.master_app = master
         self.controller = controller
+        self.config_manager = config_manager # <-- Recebe o config_manager
         self.on_ready_callback = on_ready_callback
-        self.title("Projetor")
+        self.title("Projetor IA")
+
+        # --- Lendo as configurações de aparência ---
+        try:
+            font_size = self.config_manager.get_int_setting('Projection', 'font_size', 60)
+            font_color = self.config_manager.get_setting('Projection', 'font_color', 'white')
+            bg_color = self.config_manager.get_setting('Projection', 'bg_color', 'black')
+        except Exception: # Fallback em caso de erro no arquivo de config
+            font_size = 60
+            font_color = 'white'
+            bg_color = 'black'
+
 
         self.overrideredirect(True)
         self.geometry(f"{target_monitor_geometry['width']}x{target_monitor_geometry['height']}+{target_monitor_geometry['x']}+{target_monitor_geometry['y']}")
 
-        self.main_canvas = tk.Canvas(self, bg="black", highlightthickness=0)
+        # --- Aplicando as configurações de aparência ---
+        self.main_canvas = tk.Canvas(self, bg=bg_color, highlightthickness=0)
         self.main_canvas.pack(fill="both", expand=True)
 
         self.projection_label = ctk.CTkLabel(
-            self.main_canvas, text="", font=ctk.CTkFont(size=60, weight="bold"),
-            fg_color="black", text_color="white", justify=ctk.CENTER
+            self.main_canvas, text="", 
+            font=ctk.CTkFont(size=font_size, weight="bold"),
+            text_color=font_color,
+            fg_color=bg_color, # Importante para o label não ter uma cor de fundo diferente
+            justify=ctk.CENTER
         )
         self.label_window_id = None
 

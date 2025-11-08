@@ -146,7 +146,8 @@ class PresentationController:
                 master=self.master, 
                 controller=self,
                 target_monitor_geometry=geom,
-                on_ready_callback=self._finalize_projection_setup  # <--- LINHA ADICIONADA DE VOLTA
+                config_manager=self.config_manager,
+                on_ready_callback=self._finalize_projection_setup
             )
             
             self.update_projection_buttons_state()

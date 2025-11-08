@@ -18,8 +18,17 @@ class ConfigManager:
 
     def _create_default_config(self):
         """Cria um arquivo de configuração com valores padrão."""
-        with open(CONFIG_PATH, 'w') as configfile:
-            self.config.write(configfile)
+        # --- INÍCIO DA ADIÇÃO ---
+        self.config['Projection'] = {
+            'font_size': '60',
+            'font_color': 'white',
+            'bg_color': 'black'
+        }
+        # --- FIM DA ADIÇÃO ---
+
+        self.config['Display'] = {
+            'projection_monitor_index': ''
+        }
 
     def get_setting(self, section, key, fallback=None):
         """Obtém uma configuração. Retorna fallback se não encontrada."""

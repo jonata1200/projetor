@@ -9,8 +9,9 @@ class AddEditSongDialog(ctk.CTkToplevel):
         self.grab_set()        
         self.title(dialog_title)
         
-        self.geometry("550x650") 
-        self.resizable(True, True)
+        self.title("Configurações")
+        self.geometry("550x450")
+        self.resizable(False, False)
 
         self.result = None 
 
@@ -139,11 +140,12 @@ class SettingsDialog(ctk.CTkToplevel):
     def _create_projection_settings_tab(self, tab_frame):
         tab_frame.grid_columnconfigure(1, weight=1)
 
+        # --- Monitor para Projeção ---
         ctk.CTkLabel(tab_frame, text="Monitor para Projeção:").grid(row=0, column=0, padx=10, pady=(20,5), sticky="w")
 
+        # Preparação da lista de monitores
         self.monitor_display_list = ["Automático (Recomendado)"]
-        self.monitor_map_for_saving = {"Automático (Recomendado)": ""} 
-        
+        self.monitor_map_for_saving = {"Automático (Recomendado)": ""}
         try:
             monitors = get_monitors()
             if monitors:
@@ -152,15 +154,13 @@ class SettingsDialog(ctk.CTkToplevel):
                     if m.is_primary: display_name += " (Primário)"
                     self.monitor_display_list.append(display_name)
                     self.monitor_map_for_saving[display_name] = str(i)
-            else:
-                self.monitor_display_list.append("Nenhum monitor detectado por screeninfo")
         except Exception as e:
             print(f"Erro ao listar monitores para configurações: {e}")
             self.monitor_display_list.append("Erro ao listar monitores")
 
+        # Preparação da variável de controle
         self.selected_monitor_var = ctk.StringVar()
         current_proj_monitor_idx_str = self.config_manager.get_setting('Display', 'projection_monitor_index', '')
-
         current_monitor_display_name = "Automático (Recomendado)"
         if current_proj_monitor_idx_str:
             for display_name, index_str_map in self.monitor_map_for_saving.items():
@@ -169,20 +169,71 @@ class SettingsDialog(ctk.CTkToplevel):
                     break
         self.selected_monitor_var.set(current_monitor_display_name)
 
+        # ###############################################################
+        # ############# A LINHA CRÍTICA QUE ESTAVA FALTANDO #############
+        # ###############################################################
+        # Criação do widget CTkOptionMenu e atribuição a self.monitor_optionmenu
         self.monitor_optionmenu = ctk.CTkOptionMenu(tab_frame, variable=self.selected_monitor_var, values=self.monitor_display_list, width=300, dynamic_resizing=False)
+        # ###############################################################
+
+        # Agora, a linha do grid pode usar o widget que acabamos de criar
         self.monitor_optionmenu.grid(row=0, column=1, padx=10, pady=(20,5), sticky="ew")
+        
+        # O resto do layout...
         ctk.CTkLabel(tab_frame, text="Automático tentará o 2º monitor não primário,\n senão o primário.", font=ctk.CTkFont(size=10)).grid(row=1, column=1, padx=10, pady=(0,10), sticky="w")
 
+        # --- SEPARADOR VISUAL ---
+        ctk.CTkFrame(tab_frame, height=2, fg_color="gray50").grid(row=2, column=0, columnspan=2, pady=15, sticky="ew")
+
+        # --- OPÇÕES DE APARÊNCIA (código continua o mesmo daqui para baixo) ---
+        # Tamanho da Fonte
+        ctk.CTkLabel(tab_frame, text="Tamanho da Fonte:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        self.font_size_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'font_size', '60'))
+        self.font_size_entry = ctk.CTkEntry(tab_frame, textvariable=self.font_size_var)
+        self.font_size_entry.grid(row=3, column=1, padx=10, pady=5, sticky="ew")
+
+        # Cor da Fonte
+        ctk.CTkLabel(tab_frame, text="Cor da Fonte:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        self.font_color_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'font_color', 'white'))
+        self.font_color_entry = ctk.CTkEntry(tab_frame, textvariable=self.font_color_var)
+        self.font_color_entry.grid(row=4, column=1, padx=10, pady=5, sticky="ew")
+        
+        # Cor de Fundo
+        ctk.CTkLabel(tab_frame, text="Cor de Fundo:").grid(row=5, column=0, padx=10, pady=5, sticky="w")
+        self.bg_color_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'bg_color', 'black'))
+        self.bg_color_entry = ctk.CTkEntry(tab_frame, textvariable=self.bg_color_var)
+        self.bg_color_entry.grid(row=5, column=1, padx=10, pady=5, sticky="ew")
+
+        ctk.CTkLabel(tab_frame, text="Use nomes de cores em inglês (ex: white, blue)\n ou códigos hex (ex: #FFFFFF, #0000FF).", font=ctk.CTkFont(size=10)).grid(row=6, column=1, padx=10, pady=(0,10), sticky="w")
+    
     def on_save(self):
         """Salva as configurações de projeção no arquivo de configuração."""
+        # Salva a configuração do monitor (já existente)
         selected_monitor_display = self.selected_monitor_var.get()
         monitor_index_to_save = self.monitor_map_for_saving.get(selected_monitor_display, "") 
         self.config_manager.set_setting('Display', 'projection_monitor_index', monitor_index_to_save)
         
+        # --- INÍCIO DA ADIÇÃO PARA SALVAR NOVAS OPÇÕES ---
+
+        # Valida e salva o tamanho da fonte
+        font_size_val = self.font_size_entry.get()
+        if font_size_val.isdigit() and int(font_size_val) > 0:
+            self.config_manager.set_setting('Projection', 'font_size', font_size_val)
+        else:
+            messagebox.showwarning("Valor Inválido", "O tamanho da fonte deve ser um número inteiro positivo.", parent=self)
+            self.font_size_entry.focus()
+            return
+            
+        # Salva as cores (sem validação complexa por enquanto)
+        self.config_manager.set_setting('Projection', 'font_color', self.font_color_entry.get().strip())
+        self.config_manager.set_setting('Projection', 'bg_color', self.bg_color_entry.get().strip())
+
+        # --- FIM DA ADIÇÃO ---
+        
         messagebox.showinfo("Configurações Salvas", 
-                            "As configurações de projeção foram salvas.\n\n"
-                            "O monitor selecionado será usado na próxima vez\n"
-                            "que a janela de projeção for aberta.",
+                            "As configurações foram salvas.\n\n"
+                            "As novas configurações de aparência serão aplicadas\n"
+                            "na próxima vez que a janela de projeção for aberta.",
                             parent=self)
 
         self.destroy()
