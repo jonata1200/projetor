@@ -8,12 +8,14 @@ class MusicController:
     Controlador responsável por toda a lógica da aba de Músicas.
     Usa um CTkScrollableFrame e CTkButtons para uma UI consistente.
     """
-    def __init__(self, master, view_widgets, music_manager, scraper, on_content_selected_callback):
+    def __init__(self, master, view_widgets, music_manager, scraper, 
+                 on_content_selected_callback, playlist_controller):
         self.master = master
         self.view = view_widgets
         self.manager = music_manager
         self.scraper = scraper
         self.on_content_selected = on_content_selected_callback
+        self.playlist_controller = playlist_controller
 
         self.current_song_id = None
         self.music_widgets = {}
@@ -31,7 +33,8 @@ class MusicController:
         self.view["btn_edit"].configure(command=self.show_edit_dialog)
         self.view["btn_delete"].configure(command=self.confirm_delete)
         self.view["btn_import"].configure(command=self.show_import_dialog)
-
+        self.view["btn_add_to_playlist"].configure(command=self.add_to_playlist)
+        
     def load_music_list(self, filter_term=None):
         """Limpa o frame e recria os botões das músicas com base no filtro."""
         scroll_frame = self.view["scroll_frame"]
@@ -94,6 +97,12 @@ class MusicController:
         state = "normal" if is_song_selected else "disabled"
         self.view["btn_edit"].configure(state=state)
         self.view["btn_delete"].configure(state=state)
+        self.view["btn_add_to_playlist"].configure(state=state)
+
+    def add_to_playlist(self):
+        """Envia a música selecionada para o controlador da playlist."""
+        if self.current_song_id:
+            self.playlist_controller.add_music_item(self.current_song_id, self.manager)
 
     def show_add_dialog(self):
         dialog = AddEditSongDialog(self.master, dialog_title="Adicionar Nova Música")

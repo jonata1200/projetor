@@ -9,12 +9,13 @@ class BibleController:
     - Popula os widgets da UI com os dados corretos.
     - Notifica o PresentationController quando versículos são carregados.
     """
-    def __init__(self, master, view_widgets, bible_manager, on_content_selected_callback):
+    def __init__(self, master, view_widgets, bible_manager, on_content_selected_callback, playlist_controller):
         self.master = master
         self.view = view_widgets
         self.manager = bible_manager
         self.on_content_selected = on_content_selected_callback
-        
+        self.playlist_controller = playlist_controller
+
         self.versions_data = []
         self.books_data = []
 
@@ -26,6 +27,7 @@ class BibleController:
         self.view["version_menu"].configure(command=self.on_version_selected)
         self.view["book_menu"].configure(command=self.on_book_selected)
         self.view["btn_load"].configure(command=self.load_verses)
+        self.view["btn_add_to_playlist"].configure(command=self.add_to_playlist)
 
     def populate_versions(self):
         """Busca as versões da Bíblia e preenche o menu de versões."""
@@ -91,9 +93,10 @@ class BibleController:
             chapter_menu.configure(values=["Erro"])
             chapter_var.set("Erro")
     
-    def load_verses(self):
+    def _get_and_process_verses(self, callback):
         """
-        Valida a seleção e inicia o carregamento de versículos em uma thread separada.
+        Lógica central para buscar versículos e chamar um callback com o resultado.
+        Usa threading para não travar a UI.
         """
         version_name = self.view["version_var"].get()
         book_name = self.view["book_var"].get()
@@ -115,15 +118,50 @@ class BibleController:
         book_abbrev = book_abbrev_obj.get('pt', '') if isinstance(book_abbrev_obj, dict) else book_abbrev_obj
         chapter_num = int(chapter_str)
         
-        # Argumentos para a thread
-        args = (version_abbrev, book_abbrev, chapter_num, book_name, version_name)
+        title = f"{book_name} {chapter_num}"
+        args = (version_abbrev, book_abbrev, chapter_num, title, version_name, callback)
 
-        # Inicia a thread
-        thread = threading.Thread(target=self._threaded_load_verses, args=args, daemon=True)
+        thread = threading.Thread(target=self._threaded_get_verses, args=args, daemon=True)
         thread.start()
 
-        # Atualiza a UI para mostrar que está carregando
         self.view["btn_load"].configure(state="disabled", text="Carregando...")
+        self.view["btn_add_to_playlist"].configure(state="disabled")
+
+    def _threaded_get_verses(self, version_abbrev, book_abbrev, chapter_num, title, version_name, callback):
+        """Busca os versículos em background."""
+        try:
+            slides = self.manager.get_verses_as_slides(version_abbrev, book_abbrev, chapter_num)
+            if not slides:
+                slides = [f"Nenhum versículo encontrado para\n{title} ({version_name})"]
+            
+            self.master.after(0, callback, slides, title)
+        except Exception as e:
+            error_message = f"Erro ao buscar versículos: {e}"
+            self.master.after(0, callback, None, title, error_message)
+
+    def load_verses(self):
+        """Ação do botão 'Carregar e Visualizar'."""
+        self._get_and_process_verses(self._on_load_verses_finished)
+
+    def _on_load_verses_finished(self, slides, title, error=None):
+        self.view["btn_load"].configure(state="normal", text="Carregar e Visualizar")
+        self.view["btn_add_to_playlist"].configure(state="normal")
+        if error:
+            messagebox.showerror("Erro de Rede", error, parent=self.master)
+            return
+        self.on_content_selected("bible", slides)
+
+    def add_to_playlist(self):
+        """Ação do botão 'Adicionar à Ordem'."""
+        self._get_and_process_verses(self._on_add_to_playlist_finished)
+
+    def _on_add_to_playlist_finished(self, slides, title, error=None):
+        self.view["btn_load"].configure(state="normal", text="Carregar e Visualizar")
+        self.view["btn_add_to_playlist"].configure(state="normal")
+        if error:
+            messagebox.showerror("Erro de Rede", error, parent=self.master)
+            return
+        self.playlist_controller.add_bible_item(slides, title)
 
     def _threaded_load_verses(self, version_abbrev, book_abbrev, chapter_num, book_name, version_name):
         """

@@ -7,6 +7,7 @@ from gui.dialogs import SettingsDialog
 from .controllers.presentation_controller import PresentationController
 from .controllers.music_controller import MusicController
 from .controllers.bible_controller import BibleController
+from .controllers.playlist_controller import PlaylistController
 
 class MainWindow(ctk.CTk):
     def __init__(self):
@@ -14,21 +15,26 @@ class MainWindow(ctk.CTk):
         self.title("Projetor IA")
         self.geometry("950x700")
 
+        # Gerenciadores de Lógica
         self.config_manager = ConfigManager()
         self.music_manager = MusicManager()
         self.bible_manager = BibleManager()
         self.letras_scraper = LetrasScraper()
 
+        # Configuração do Layout Principal
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=3)
         self.grid_rowconfigure(1, weight=1)
 
+        # Criação dos Componentes da UI
         self._create_top_bar()
         self._create_preview_pane()
         self._create_main_tabs()
 
+        # Inicialização dos Controladores
         self._init_controllers()
 
+        # Atalhos e Eventos Globais
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         self.bind("<Escape>", lambda e: self.presentation_controller.close_projection_window())
         self.bind("<Right>", lambda e: self.presentation_controller.next_slide())
@@ -38,7 +44,7 @@ class MainWindow(ctk.CTk):
         self.update_theme_button_text()
 
     def _create_top_bar(self):
-        """Cria a barra superior com controles globais de projeção e IA."""
+        """Cria a barra superior com controles globais de projeção."""
         top_frame = ctk.CTkFrame(self)
         top_frame.grid(row=0, column=0, columnspan=2, pady=10, padx=10, sticky="ew")
         
@@ -75,36 +81,26 @@ class MainWindow(ctk.CTk):
         def _on_resize(event):
             self.slide_preview_label.configure(wraplength=event.width * 0.95)
         preview_frame.bind("<Configure>", _on_resize)
-
+        
         controls_frame = ctk.CTkFrame(outer_frame)
         controls_frame.grid(row=2, column=0, pady=(5,0), padx=5, sticky="ew")
+        controls_frame.grid_columnconfigure(1, weight=1)
 
-        # Configure 3 colunas: [Anterior] [---CENTRO EXPANSÍVEL---] [Próximo]
-        controls_frame.grid_columnconfigure(0, weight=0) # Coluna do botão Anterior
-        controls_frame.grid_columnconfigure(1, weight=1) # Coluna central que se expande
-        controls_frame.grid_columnconfigure(2, weight=0) # Coluna do botão Próximo
-
-        # Botão Anterior na coluna 0, alinhado à esquerda
         self.btn_prev_slide = ctk.CTkButton(controls_frame, text="< Anterior", state="disabled")
         self.btn_prev_slide.grid(row=0, column=0, pady=5, padx=5, sticky="w")
         
-        # Crie um sub-frame para os widgets do meio
         middle_sub_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
         middle_sub_frame.grid(row=0, column=1, pady=5, padx=5, sticky="ew")
-
-        # Posicione o sub-frame no centro da coluna expansível
         middle_sub_frame.grid_columnconfigure(0, weight=1)
         middle_sub_frame.grid_columnconfigure(1, weight=0)
         middle_sub_frame.grid_columnconfigure(2, weight=1)
 
-        # Adicione os widgets DENTRO do sub-frame
         self.btn_show_all_slides = ctk.CTkButton(middle_sub_frame, text="Ver Todos", state="disabled", width=100)
         self.btn_show_all_slides.pack(side="left", padx=10)
         
         self.slide_indicator_label = ctk.CTkLabel(middle_sub_frame, text="- / -")
         self.slide_indicator_label.pack(side="left", padx=10)
         
-        # Botão Próximo na coluna 2, alinhado à direita
         self.btn_next_slide = ctk.CTkButton(controls_frame, text="Próximo >", state="disabled")
         self.btn_next_slide.grid(row=0, column=2, pady=5, padx=5, sticky="e")
 
@@ -113,12 +109,39 @@ class MainWindow(ctk.CTk):
         self.tab_view = ctk.CTkTabview(self)
         self.tab_view.grid(row=1, column=0, pady=(0,10), padx=10, sticky="nsew")
         
+        self.tab_playlist = self.tab_view.add("Ordem de Culto")
         self.tab_music = self.tab_view.add("Músicas")
         self.tab_bible = self.tab_view.add("Bíblia")
         
+        self._setup_playlist_tab_ui(self.tab_playlist)
         self._setup_music_tab_ui(self.tab_music)
         self._setup_bible_tab_ui(self.tab_bible)
         
+        self.tab_view.set("Ordem de Culto") # Inicia na aba da playlist
+
+    def _setup_playlist_tab_ui(self, tab):
+        """Cria os widgets para a aba da Ordem de Culto."""
+        tab.grid_columnconfigure(0, weight=1)
+        tab.grid_rowconfigure(1, weight=1)
+
+        actions_frame = ctk.CTkFrame(tab)
+        actions_frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+
+        self.btn_playlist_remove = ctk.CTkButton(actions_frame, text="Remover", state="disabled", fg_color="#D32F2F", hover_color="#B71C1C")
+        self.btn_playlist_remove.pack(side="left", padx=5, pady=5)
+
+        self.btn_playlist_up = ctk.CTkButton(actions_frame, text="Subir ▲", state="disabled", width=100)
+        self.btn_playlist_up.pack(side="left", padx=5, pady=5)
+
+        self.btn_playlist_down = ctk.CTkButton(actions_frame, text="Descer ▼", state="disabled", width=100)
+        self.btn_playlist_down.pack(side="left", padx=5, pady=5)
+        
+        self.btn_playlist_clear = ctk.CTkButton(actions_frame, text="Limpar Tudo")
+        self.btn_playlist_clear.pack(side="right", padx=5, pady=5)
+
+        self.playlist_scroll_frame = ctk.CTkScrollableFrame(tab, label_text="Itens da Ordem de Culto")
+        self.playlist_scroll_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=(0, 5))
+
     def _setup_music_tab_ui(self, tab):
         """Cria os widgets para a aba de Músicas."""
         tab.grid_columnconfigure(0, weight=1)
@@ -131,17 +154,24 @@ class MainWindow(ctk.CTk):
         self.music_search_entry = ctk.CTkEntry(actions_frame, placeholder_text="Buscar música...")
         self.music_search_entry.grid(row=0, column=0, padx=(0,5), pady=5, sticky="ew")
 
-        self.btn_import_music = ctk.CTkButton(actions_frame, text="Importar (URL)")
-        self.btn_import_music.grid(row=0, column=1, padx=5)
+        # Frame para agrupar os botões de ação à direita
+        buttons_frame = ctk.CTkFrame(actions_frame, fg_color="transparent")
+        buttons_frame.grid(row=0, column=1, sticky="e")
 
-        self.btn_add_manual_music = ctk.CTkButton(actions_frame, text="Adicionar Nova")
-        self.btn_add_manual_music.grid(row=0, column=2, padx=5)
+        self.btn_add_to_playlist_music = ctk.CTkButton(buttons_frame, text="Adicionar à Ordem", state="disabled", fg_color="sea green", hover_color="dark sea green")
+        self.btn_add_to_playlist_music.pack(side="left", padx=(0,10))
 
-        self.btn_edit_song = ctk.CTkButton(actions_frame, text="Editar", state="disabled")
-        self.btn_edit_song.grid(row=0, column=3, padx=5)
+        self.btn_import_music = ctk.CTkButton(buttons_frame, text="Importar (URL)")
+        self.btn_import_music.pack(side="left", padx=5)
+
+        self.btn_add_manual_music = ctk.CTkButton(buttons_frame, text="Adicionar Nova")
+        self.btn_add_manual_music.pack(side="left", padx=5)
+
+        self.btn_edit_song = ctk.CTkButton(buttons_frame, text="Editar", state="disabled")
+        self.btn_edit_song.pack(side="left", padx=5)
         
-        self.btn_delete_song = ctk.CTkButton(actions_frame, text="Excluir", state="disabled", fg_color="#D32F2F", hover_color="#B71C1C")
-        self.btn_delete_song.grid(row=0, column=4, padx=5)
+        self.btn_delete_song = ctk.CTkButton(buttons_frame, text="Excluir", state="disabled", fg_color="#D32F2F", hover_color="#B71C1C")
+        self.btn_delete_song.pack(side="left", padx=5)
 
         self.music_scroll_frame = ctk.CTkScrollableFrame(tab, label_text=None)
         self.music_scroll_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=(0, 5))
@@ -167,9 +197,17 @@ class MainWindow(ctk.CTk):
         self.bible_chapter_var = ctk.StringVar(value="Aguardando...")
         self.bible_chapter_optionmenu = ctk.CTkOptionMenu(options_frame, variable=self.bible_chapter_var, values=["..."])
         self.bible_chapter_optionmenu.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+        
+        # Frame para os botões da Bíblia ficarem lado a lado
+        bottom_frame = ctk.CTkFrame(tab)
+        bottom_frame.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
+        bottom_frame.grid_columnconfigure((0, 1), weight=1)
 
-        self.btn_load_verses = ctk.CTkButton(tab, text="Carregar Versículos")
-        self.btn_load_verses.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
+        self.btn_load_verses = ctk.CTkButton(bottom_frame, text="Carregar e Visualizar")
+        self.btn_load_verses.grid(row=0, column=0, padx=(0,5), sticky="ew")
+
+        self.btn_add_to_playlist_bible = ctk.CTkButton(bottom_frame, text="Adicionar à Ordem", fg_color="sea green", hover_color="dark sea green")
+        self.btn_add_to_playlist_bible.grid(row=0, column=1, padx=(5,0), sticky="ew")
 
     def _init_controllers(self):
         """Agrupa os widgets e instancia os controladores, conectando-os."""
@@ -184,6 +222,19 @@ class MainWindow(ctk.CTk):
         }
         self.presentation_controller = PresentationController(self, presentation_ui, self.config_manager)
 
+        # O controlador da Playlist é criado primeiro, pois os outros dependem dele.
+        playlist_ui = {
+            "scroll_frame": self.playlist_scroll_frame,
+            "btn_remove": self.btn_playlist_remove,
+            "btn_up": self.btn_playlist_up,
+            "btn_down": self.btn_playlist_down,
+            "btn_clear": self.btn_playlist_clear
+        }
+        self.playlist_controller = PlaylistController(
+            self, playlist_ui, self.presentation_controller
+        )
+
+        # O controlador de Música recebe a referência ao controlador da Playlist.
         music_ui = {
             "scroll_frame": self.music_scroll_frame,
             "search_entry": self.music_search_entry,
@@ -191,25 +242,30 @@ class MainWindow(ctk.CTk):
             "btn_edit": self.btn_edit_song,
             "btn_delete": self.btn_delete_song,
             "btn_import": self.btn_import_music,
+            "btn_add_to_playlist": self.btn_add_to_playlist_music
         }
         self.music_controller = MusicController(
             self, music_ui, self.music_manager, self.letras_scraper,
-            self.presentation_controller.load_content
+            self.presentation_controller.load_content,
+            self.playlist_controller
         )
 
+        # O controlador da Bíblia também recebe a referência ao controlador da Playlist.
         bible_ui = {
             "version_menu": self.bible_version_optionmenu, "version_var": self.bible_version_var,
             "book_menu": self.bible_book_optionmenu, "book_var": self.bible_book_var,
             "chapter_menu": self.bible_chapter_optionmenu, "chapter_var": self.bible_chapter_var,
-            "btn_load": self.btn_load_verses
+            "btn_load": self.btn_load_verses,
+            "btn_add_to_playlist": self.btn_add_to_playlist_bible
         }
         self.bible_controller = BibleController(
             self, bible_ui, self.bible_manager,
-            self.presentation_controller.load_content
+            self.presentation_controller.load_content,
+            self.playlist_controller
         )
 
     def show_settings_dialog(self):
-        """Abre o diálogo de configurações e, ao fechar, notifica o controlador para aplicar as mudanças."""
+        """Abre o diálogo de configurações."""
         dialog = SettingsDialog(master=self, config_manager=self.config_manager)
         dialog.wait_window()
 
@@ -222,7 +278,7 @@ class MainWindow(ctk.CTk):
 
     def update_theme_button_text(self):
         """Atualiza o texto do botão de tema."""
-        text = "Mudar p/ Claro" if self.is_dark_mode else "Mudar p/ Escuro"
+        text = "Tema Claro" if self.is_dark_mode else "Tema Escuro"
         self.theme_button.configure(text=text)
 
     def on_closing(self):
