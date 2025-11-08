@@ -1,21 +1,15 @@
-import threading
+import customtkinter as ctk
 from tkinter import messagebox
+import threading
 
 class BibleController:
-    """
-    Controlador responsável por toda a lógica da aba da Bíblia.
-    - Gerencia a seleção de versão, livro e capítulo.
-    - Interage com o BibleManager para buscar dados.
-    - Popula os widgets da UI com os dados corretos.
-    - Notifica o PresentationController quando versículos são carregados.
-    """
     def __init__(self, master, view_widgets, bible_manager, on_content_selected_callback, playlist_controller):
         self.master = master
         self.view = view_widgets
         self.manager = bible_manager
         self.on_content_selected = on_content_selected_callback
         self.playlist_controller = playlist_controller
-
+        
         self.versions_data = []
         self.books_data = []
 
@@ -23,11 +17,89 @@ class BibleController:
         self.populate_versions()
 
     def _setup_callbacks(self):
-        """Conecta os widgets da UI aos métodos deste controlador."""
+        # Callbacks para navegação
         self.view["version_menu"].configure(command=self.on_version_selected)
         self.view["book_menu"].configure(command=self.on_book_selected)
         self.view["btn_load"].configure(command=self.load_verses)
         self.view["btn_add_to_playlist"].configure(command=self.add_to_playlist)
+        
+        # Callbacks para busca
+        self.view["btn_search"].configure(command=self.perform_search)
+        self.view["search_entry"].bind("<Return>", lambda event: self.perform_search())
+
+    # --- Métodos de Busca (NOVOS) ---
+
+    def perform_search(self):
+        """Inicia a busca por palavra-chave em uma thread."""
+        search_term = self.view["search_entry"].get().strip()
+        if not search_term:
+            messagebox.showwarning("Busca Inválida", "Por favor, digite um termo para buscar.", parent=self.master)
+            return
+
+        # --- INÍCIO DA CORREÇÃO: Pegar a versão selecionada ---
+        version_name = self.view["version_var"].get()
+        version_data = next((v for v in self.versions_data if v['name'] == version_name), None)
+        
+        if not version_data:
+            messagebox.showerror("Erro de Versão", "Nenhuma versão da Bíblia selecionada ou encontrada.", parent=self.master)
+            return
+        version_abbrev = version_data['version']
+        # --- FIM DA CORREÇÃO ---
+
+        # Passa a versão para a thread
+        thread = threading.Thread(target=self._threaded_search, args=(version_abbrev, search_term,), daemon=True)
+        thread.start()
+        
+        self.view["btn_search"].configure(state="disabled", text="Buscando...")
+        self._clear_search_results()
+        loading_label = ctk.CTkLabel(self.view["results_frame"], text="Buscando, por favor aguarde...")
+        loading_label.pack(pady=10)
+
+    def _threaded_search(self, version_abbrev, term): # <-- Recebe version_abbrev
+        """Executado em background. Busca os versículos e chama o callback."""
+        try:
+            # Passa a versão para o gerenciador
+            results = self.manager.search_verses_as_slides(version_abbrev, term)
+            self.master.after(0, self._on_search_finished, results)
+        except Exception as e:
+            self.master.after(0, self._on_search_finished, None, str(e))
+
+    def _on_search_finished(self, results, error=None):
+        """Executado na thread principal. Renderiza os resultados da busca."""
+        self.view["btn_search"].configure(state="normal", text="Buscar")
+        self._clear_search_results()
+
+        if error:
+            messagebox.showerror("Erro na Busca", f"Ocorreu um erro: {error}", parent=self.master)
+            return
+        
+        if not results:
+            no_results_label = ctk.CTkLabel(self.view["results_frame"], text="Nenhum resultado encontrado.")
+            no_results_label.pack(pady=10)
+            return
+        
+        for verse_text in results:
+            # Limita o texto do botão para não ficar muito longo
+            btn_text = verse_text.replace("\n", " ").strip()
+            if len(btn_text) > 80:
+                btn_text = btn_text[:77] + "..."
+                
+            result_button = ctk.CTkButton(
+                self.view["results_frame"],
+                text=btn_text,
+                anchor="w",
+                command=lambda text=verse_text: self._on_search_result_selected(text)
+            )
+            result_button.pack(fill="x", padx=5, pady=2)
+            
+    def _on_search_result_selected(self, verse_slide):
+        """Carrega um único versículo do resultado da busca na projeção."""
+        self.on_content_selected("bible", [verse_slide])
+
+    def _clear_search_results(self):
+        """Limpa todos os widgets do frame de resultados."""
+        for widget in self.view["results_frame"].winfo_children():
+            widget.destroy()
 
     def populate_versions(self):
         """Busca as versões da Bíblia e preenche o menu de versões."""

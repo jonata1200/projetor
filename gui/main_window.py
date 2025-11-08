@@ -216,30 +216,48 @@ class MainWindow(ctk.CTk):
         self.btn_delete_song.grid(row=0, column=3, padx=5, pady=5)
 
     def _setup_bible_tab_ui(self, tab):
-        """Cria os widgets para a aba da Bíblia."""
+        """Cria os widgets para a aba da Bíblia, com busca e navegação."""
         tab.grid_columnconfigure(0, weight=1)
-        options_frame = ctk.CTkFrame(tab)
-        options_frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        options_frame.grid_columnconfigure(1, weight=1)
+        tab.grid_rowconfigure(2, weight=1) # A linha dos resultados da busca expande
 
-        ctk.CTkLabel(options_frame, text="Versão:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        # --- Frame de Busca ---
+        search_frame = ctk.CTkFrame(tab, fg_color="transparent")
+        search_frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        search_frame.grid_columnconfigure(0, weight=1)
+
+        self.bible_search_entry = ctk.CTkEntry(search_frame, placeholder_text="Buscar versículo por palavra-chave...")
+        self.bible_search_entry.grid(row=0, column=0, padx=(0,5), sticky="ew")
+        self.btn_bible_search = ctk.CTkButton(search_frame, text="Buscar")
+        self.btn_bible_search.grid(row=0, column=1, padx=(5,0))
+        
+        # --- Frame de Resultados da Busca (inicialmente vazio) ---
+        self.bible_search_results_frame = ctk.CTkScrollableFrame(tab, label_text="Resultados da Busca")
+        self.bible_search_results_frame.grid(row=1, column=0, padx=5, pady=5, sticky="ew",)
+        
+        # --- Frame de Navegação por Referência (o antigo layout) ---
+        options_frame = ctk.CTkFrame(tab)
+        options_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
+        options_frame.grid_columnconfigure(1, weight=1)
+        
+        ctk.CTkLabel(options_frame, text="Navegar por Referência", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=2, pady=(5,10))
+
+        ctk.CTkLabel(options_frame, text="Versão:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.bible_version_var = ctk.StringVar(value="Carregando...")
         self.bible_version_optionmenu = ctk.CTkOptionMenu(options_frame, variable=self.bible_version_var, values=["..."])
-        self.bible_version_optionmenu.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        self.bible_version_optionmenu.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
 
-        ctk.CTkLabel(options_frame, text="Livro:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        ctk.CTkLabel(options_frame, text="Livro:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.bible_book_var = ctk.StringVar(value="Aguardando...")
         self.bible_book_optionmenu = ctk.CTkOptionMenu(options_frame, variable=self.bible_book_var, values=["..."])
-        self.bible_book_optionmenu.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        self.bible_book_optionmenu.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
 
-        ctk.CTkLabel(options_frame, text="Capítulo:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        ctk.CTkLabel(options_frame, text="Capítulo:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
         self.bible_chapter_var = ctk.StringVar(value="Aguardando...")
         self.bible_chapter_optionmenu = ctk.CTkOptionMenu(options_frame, variable=self.bible_chapter_var, values=["..."])
-        self.bible_chapter_optionmenu.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+        self.bible_chapter_optionmenu.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
         
-        # Frame para os botões da Bíblia ficarem lado a lado
-        bottom_frame = ctk.CTkFrame(tab)
-        bottom_frame.grid(row=1, column=0, padx=5, pady=10, sticky="ew")
+        bottom_frame = ctk.CTkFrame(options_frame)
+        bottom_frame.grid(row=4, column=0, columnspan=2, padx=0, pady=10, sticky="ew")
         bottom_frame.grid_columnconfigure((0, 1), weight=1)
 
         self.btn_load_verses = ctk.CTkButton(bottom_frame, text="Carregar e Visualizar")
@@ -291,11 +309,16 @@ class MainWindow(ctk.CTk):
 
         # O controlador da Bíblia também recebe a referência ao controlador da Playlist.
         bible_ui = {
+            # Navegação
             "version_menu": self.bible_version_optionmenu, "version_var": self.bible_version_var,
             "book_menu": self.bible_book_optionmenu, "book_var": self.bible_book_var,
             "chapter_menu": self.bible_chapter_optionmenu, "chapter_var": self.bible_chapter_var,
             "btn_load": self.btn_load_verses,
-            "btn_add_to_playlist": self.btn_add_to_playlist_bible
+            "btn_add_to_playlist": self.btn_add_to_playlist_bible,
+            # Busca
+            "search_entry": self.bible_search_entry,
+            "btn_search": self.btn_bible_search,
+            "results_frame": self.bible_search_results_frame
         }
         self.bible_controller = BibleController(
             self, bible_ui, self.bible_manager,
