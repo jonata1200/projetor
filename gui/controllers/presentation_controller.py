@@ -44,14 +44,19 @@ class PresentationController:
             callback_goto_slide=self.go_to_slide
         )
 
-    def load_content(self, content_type, slides, content_id=None):
-        """Ponto de entrada central para carregar novo conteúdo (música ou bíblia)."""
+    def load_content(self, content_type, slides, content_id=None, start_index=0):
+        """
+        Ponto de entrada central para carregar novo conteúdo,
+        com a opção de iniciar em um slide específico.
+        """
         self.content_type = content_type
         self.slides = slides if slides else []
         self.content_id = content_id
-
+        
         if self.slides:
-            self.current_index = 0
+            # --- MUDANÇA AQUI ---
+            # Define o índice inicial, garantindo que seja um valor válido.
+            self.current_index = start_index if 0 <= start_index < len(self.slides) else 0
             self.update_slide_view()
         else:
             self.current_index = -1

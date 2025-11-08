@@ -214,32 +214,43 @@ class MainWindow(ctk.CTk):
         self.btn_delete_song.grid(row=0, column=3, padx=5, pady=5)
 
     def _setup_bible_tab_ui(self, tab):
-        """Cria os widgets para a aba da Bíblia (layout simplificado)."""
+        """Cria os widgets para a aba da Bíblia com seletor de versículo."""
         tab.grid_columnconfigure(0, weight=1)
-        # A linha 0 (options_frame) vai ocupar todo o espaço
         tab.grid_rowconfigure(0, weight=1) 
         
         options_frame = ctk.CTkFrame(tab)
         options_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         options_frame.grid_columnconfigure(1, weight=1)
         
-        ctk.CTkLabel(options_frame, text="Navegar por Referência", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=2, pady=(5,10))
+        # O texto "Navegar por Referência" foi removido.
 
-        ctk.CTkLabel(options_frame, text="Versão:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        # Linha 0: Versão
+        ctk.CTkLabel(options_frame, text="Versão:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
         self.bible_version_var = ctk.StringVar(value="Carregando...")
         self.bible_version_optionmenu = ctk.CTkOptionMenu(options_frame, variable=self.bible_version_var, values=["..."])
-        self.bible_version_optionmenu.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        self.bible_version_optionmenu.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
-        ctk.CTkLabel(options_frame, text="Livro:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        # Linha 1: Livro
+        ctk.CTkLabel(options_frame, text="Livro:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
         self.bible_book_var = ctk.StringVar(value="Aguardando...")
         self.bible_book_optionmenu = ctk.CTkOptionMenu(options_frame, variable=self.bible_book_var, values=["..."])
-        self.bible_book_optionmenu.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+        self.bible_book_optionmenu.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
 
-        ctk.CTkLabel(options_frame, text="Capítulo:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        # Linha 2: Capítulo
+        ctk.CTkLabel(options_frame, text="Capítulo:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.bible_chapter_var = ctk.StringVar(value="Aguardando...")
         self.bible_chapter_optionmenu = ctk.CTkOptionMenu(options_frame, variable=self.bible_chapter_var, values=["..."])
-        self.bible_chapter_optionmenu.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
-        
+        self.bible_chapter_optionmenu.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+
+        # --- INÍCIO DA ADIÇÃO DO SELETOR DE VERSÍCULO ---
+        # Linha 3: Versículo
+        ctk.CTkLabel(options_frame, text="Versículo:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        self.bible_verse_var = ctk.StringVar(value="Aguardando...")
+        self.bible_verse_optionmenu = ctk.CTkOptionMenu(options_frame, variable=self.bible_verse_var, values=["..."], state="disabled")
+        self.bible_verse_optionmenu.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
+        # --- FIM DA ADIÇÃO ---
+
+        # Linha 4: Botões
         bottom_frame = ctk.CTkFrame(options_frame)
         bottom_frame.grid(row=4, column=0, columnspan=2, padx=0, pady=10, sticky="ew")
         bottom_frame.grid_columnconfigure((0, 1), weight=1)
@@ -293,10 +304,12 @@ class MainWindow(ctk.CTk):
 
         # O controlador da Bíblia também recebe a referência ao controlador da Playlist.
         bible_ui = {
-            # Navegação
             "version_menu": self.bible_version_optionmenu, "version_var": self.bible_version_var,
             "book_menu": self.bible_book_optionmenu, "book_var": self.bible_book_var,
             "chapter_menu": self.bible_chapter_optionmenu, "chapter_var": self.bible_chapter_var,
+            # --- INÍCIO DA ADIÇÃO ---
+            "verse_menu": self.bible_verse_optionmenu, "verse_var": self.bible_verse_var,
+            # --- FIM DA ADIÇÃO ---
             "btn_load": self.btn_load_verses,
             "btn_add_to_playlist": self.btn_add_to_playlist_bible,
         }
