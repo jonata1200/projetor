@@ -214,27 +214,13 @@ class MainWindow(ctk.CTk):
         self.btn_delete_song.grid(row=0, column=3, padx=5, pady=5)
 
     def _setup_bible_tab_ui(self, tab):
-        """Cria os widgets para a aba da Bíblia, com busca e navegação."""
+        """Cria os widgets para a aba da Bíblia (layout simplificado)."""
         tab.grid_columnconfigure(0, weight=1)
-        tab.grid_rowconfigure(2, weight=1) # A linha dos resultados da busca expande
-
-        # --- Frame de Busca ---
-        search_frame = ctk.CTkFrame(tab, fg_color="transparent")
-        search_frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        search_frame.grid_columnconfigure(0, weight=1)
-
-        self.bible_search_entry = ctk.CTkEntry(search_frame, placeholder_text="Buscar versículo por palavra-chave...")
-        self.bible_search_entry.grid(row=0, column=0, padx=(0,5), sticky="ew")
-        self.btn_bible_search = ctk.CTkButton(search_frame, text="Buscar")
-        self.btn_bible_search.grid(row=0, column=1, padx=(5,0))
+        # A linha 0 (options_frame) vai ocupar todo o espaço
+        tab.grid_rowconfigure(0, weight=1) 
         
-        # --- Frame de Resultados da Busca (inicialmente vazio) ---
-        self.bible_search_results_frame = ctk.CTkScrollableFrame(tab, label_text="Resultados da Busca")
-        self.bible_search_results_frame.grid(row=1, column=0, padx=5, pady=5, sticky="ew",)
-        
-        # --- Frame de Navegação por Referência (o antigo layout) ---
         options_frame = ctk.CTkFrame(tab)
-        options_frame.grid(row=2, column=0, padx=5, pady=5, sticky="nsew")
+        options_frame.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
         options_frame.grid_columnconfigure(1, weight=1)
         
         ctk.CTkLabel(options_frame, text="Navegar por Referência", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, columnspan=2, pady=(5,10))
@@ -313,10 +299,6 @@ class MainWindow(ctk.CTk):
             "chapter_menu": self.bible_chapter_optionmenu, "chapter_var": self.bible_chapter_var,
             "btn_load": self.btn_load_verses,
             "btn_add_to_playlist": self.btn_add_to_playlist_bible,
-            # Busca
-            "search_entry": self.bible_search_entry,
-            "btn_search": self.btn_bible_search,
-            "results_frame": self.bible_search_results_frame
         }
         self.bible_controller = BibleController(
             self, bible_ui, self.bible_manager,

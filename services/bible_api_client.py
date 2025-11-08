@@ -13,43 +13,6 @@ class BibleAPIClient:
         if not self.token:
             print("AVISO: Token da API da Bíblia Digital não configurado. Algumas funcionalidades podem ser limitadas.")
 
-    def search_verses(self, version_abbrev, term):
-        """
-        Busca por versículos que contenham o termo fornecido.
-        A API requer que o corpo da requisição seja um JSON, incluindo a versão.
-        """
-        # CORREÇÃO 1: A URL é fixa e não contém a versão.
-        endpoint = "/verses/search"
-        
-        # CORREÇÃO 2: A versão é adicionada ao corpo (payload) da requisição.
-        payload = {
-            "version": version_abbrev,
-            "search": term
-        }
-        
-        headers = {
-            "Content-Type": "application/json"
-        }
-        if self.token:
-            headers["Authorization"] = f"Bearer {self.token}"
-
-        response = None
-        try:
-            response = requests.post(f"{self.BASE_URL}{endpoint}", headers=headers, json=payload)
-            response.raise_for_status()
-            data = response.json()
-            return data.get("verses", [])
-        except requests.exceptions.RequestException as e:
-            if response is not None and response.status_code == 404:
-                print(f"ERRO na API da Bíblia (busca): URL não encontrada - {e}")
-            else:
-                print(f"Erro na API da Bíblia (busca): {e}")
-            return None
-        except json.JSONDecodeError:
-            response_text = response.text if response is not None else "Nenhuma resposta recebida"
-            print(f"Erro ao decodificar JSON da API da Bíblia (busca). Resposta: {response_text}")
-            return None
-
     def _make_request(self, endpoint, params=None):
         headers = {}
         if self.token:

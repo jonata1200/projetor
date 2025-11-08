@@ -15,24 +15,6 @@ class BibleManager:
         self.books = []
         self.current_version = None
 
-    def search_verses_as_slides(self, version_abbrev, term): # <-- Adicionamos version_abbrev
-        """
-        Busca versículos por um termo e os formata como uma lista de slides.
-        """
-        # Agora passa a versão para o cliente da API
-        verses_data = self.api_client.search_verses(version_abbrev, term)
-        slides = []
-        if verses_data:
-            for verse in verses_data:
-                book_name = verse.get("book", {}).get("name", "Livro")
-                chapter = verse.get("chapter", "?")
-                number = verse.get("number", "?")
-                text = verse.get("text", "Texto não encontrado.")
-                
-                slide_text = f"{book_name} {chapter}:{number}\n{text}"
-                slides.append(slide_text)
-        return slides
-
     def _save_books_to_cache(self, books_data):
         """Salva a lista de livros em um arquivo JSON local."""
         try:
