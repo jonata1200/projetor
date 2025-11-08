@@ -5,7 +5,6 @@ import random
 # A classe SnowFlake permanece a mesma
 class SnowFlake:
     def __init__(self, canvas_width, canvas_height):
-        # ... (código existente, sem alterações)
         self.canvas_width = canvas_width
         self.canvas_height = canvas_height
         self.x = random.randint(0, canvas_width)
@@ -15,7 +14,6 @@ class SnowFlake:
         self.drift = random.uniform(-0.3, 0.3)
 
     def move(self):
-        # ... (código existente, sem alterações)
         self.y += self.speed
         self.x += self.drift
         if self.y > self.canvas_height or self.x < 0 or self.x > self.canvas_width:
@@ -23,7 +21,6 @@ class SnowFlake:
             self.x = random.randint(0, self.canvas_width)
 
 class ProjectionWindow(ctk.CTkToplevel):
-    # ... (constantes de neve existentes)
     NUM_SNOWFLAKES = 150
     ANIMATION_DELAY_MS = 30
 
@@ -46,8 +43,6 @@ class ProjectionWindow(ctk.CTkToplevel):
         except Exception:
             font_size, font_color, bg_color = 60, 'white', 'black'
 
-        self.original_bg_color = bg_color
-        self.is_overridden = False
         self.is_fading = False
         self._after_id_fade = None
 
@@ -61,13 +56,8 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.animation_running = False
         self._after_id_snow = None
 
-        # --- INÍCIO DA CORREÇÃO DOS ATALHOS ---
-        # Vincula os atalhos de teclado diretamente a esta janela.
-        # Isso garante que eles funcionem mesmo quando esta janela tem o foco.
         self.bind("<Right>", lambda e: self.controller.next_slide())
         self.bind("<Left>", lambda e: self.controller.prev_slide())
-        self.bind("<b>", lambda e: self.controller.toggle_black_screen())
-        self.bind("<w>", lambda e: self.controller.toggle_white_screen())
         self.bind("<c>", lambda e: self.controller.clear_projection_content())
 
         # Garante que todas as formas de fechar a janela sejam consistentes
@@ -75,7 +65,6 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.main_canvas.bind("<Double-Button-1>", self.close_window)
         self.projection_label.bind("<Double-Button-1>", self.close_window)
         self.protocol("WM_DELETE_WINDOW", self.close_window)
-        # --- FIM DA CORREÇÃO DOS ATALHOS ---
         
         # O bind <Configure> é mantido
         self.bind("<Configure>", self._on_resize)
@@ -95,16 +84,11 @@ class ProjectionWindow(ctk.CTkToplevel):
         self._fade_out(lambda: self._update_text_and_fade_in(text))
 
     def _update_text_and_fade_in(self, text):
-        """Função intermediária: atualiza o texto quando ele está invisível."""
+        """Função intermediária: atualiza o texto quando ele está invisível e inicia o fade in."""
         if self.projection_label.winfo_exists():
             self.projection_label.configure(text=text)
+        self._fade_in()
         
-        # Se a tela está em override, não faz o fade in
-        if not self.is_overridden:
-            self._fade_in()
-        else:
-            self.attributes("-alpha", 0) # Garante que fique invisível
-    
     def _fade_out(self, on_finish_callback=None):
         """Animação de fade out (de 100% a 0% de opacidade)."""
         self.is_fading = True
@@ -142,28 +126,6 @@ class ProjectionWindow(ctk.CTkToplevel):
             if on_finish:
                 on_finish()
 
-    # --- PEQUENA MODIFICAÇÃO EM toggle_override_screen ---
-    def toggle_override_screen(self, color=None):
-        """Ativa ou desativa um estado de override (tela preta/branca)."""
-        # Cancela qualquer animação de fade em andamento
-        if self.is_fading:
-            self.after_cancel(self._after_id_fade)
-            self.is_fading = False
-        
-        if color:
-            if not self.is_overridden:
-                self.attributes("-alpha", 0) # Esconde o texto via fade out instantâneo
-            self.main_canvas.configure(bg=color)
-            self.attributes("-alpha", 1) # Mostra a cor de fundo sólida
-            self.is_overridden = True
-        else:
-            if self.is_overridden:
-                self.main_canvas.configure(bg=self.original_bg_color)
-                # O fade in será acionado pela próxima chamada a update_content
-                self.is_overridden = False
-
-    # Todos os outros métodos (close_window, _initialize_layout, _on_resize, etc.)
-    # permanecem exatamente os mesmos.
     def close_window(self, event=None):
         if self.controller: self.controller.on_projection_window_closed()
         self.stop_snow_animation()

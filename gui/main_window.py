@@ -40,8 +40,6 @@ class MainWindow(ctk.CTk):
         self.bind("<Escape>", lambda e: self.presentation_controller.close_projection_window())
         self.bind("<Right>", lambda e: self.presentation_controller.next_slide())
         self.bind("<Left>", lambda e: self.presentation_controller.prev_slide())
-        self.bind("<b>", lambda e: self.presentation_controller.toggle_black_screen())
-        self.bind("<w>", lambda e: self.presentation_controller.toggle_white_screen())
         self.bind("<c>", lambda e: self.presentation_controller.clear_projection_content())
 
         self.is_dark_mode = ctk.get_appearance_mode() == "Dark"

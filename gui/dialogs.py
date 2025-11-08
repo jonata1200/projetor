@@ -284,8 +284,6 @@ class ShortcutsHelpDialog(ctk.CTkToplevel):
         shortcuts = [
             ("➡️", "Avançar para o Próximo Slide"),
             ("⬅️", "Voltar para o Slide Anterior"),
-            ("B", "Tela Preta (Blackout)"),
-            ("W", "Tela Branca (Whiteout)"),
             ("C", "Limpar Conteúdo da Projeção"),
             ("Esc", "Fechar Janela de Projeção")
         ]
