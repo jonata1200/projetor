@@ -114,19 +114,19 @@ class SettingsDialog(ctk.CTkToplevel):
         
         self.transient(master)
         self.grab_set()
-        self.title("Configurações do Projetor IA")
-        self.geometry("550x420") # <-- Note a altura
+        self.title("Configurações")
+        self.geometry("550x280")
         self.resizable(False, False)
 
-        self.tab_view = ctk.CTkTabview(self, width=530)
-        self.tab_view.pack(pady=10, padx=10, fill="both", expand=True)
-        self._create_projection_settings_tab(self.projection_tab)
+        main_settings_frame = ctk.CTkFrame(self)
+        main_settings_frame.pack(pady=10, padx=10, fill="both", expand=True)
+        self._create_projection_settings_tab(main_settings_frame)
         
         button_frame = ctk.CTkFrame(self, fg_color="transparent")
         button_frame.pack(side="bottom", fill="x", pady=(5,15), padx=10)
         button_frame.grid_columnconfigure((0, 3), weight=1)
 
-        self.save_button = ctk.CTkButton(button_frame, text="Salvar e Aplicar", command=self.on_save, width=140)
+        self.save_button = ctk.CTkButton(button_frame, text="Salvar", command=self.on_save, width=140)
         self.save_button.grid(row=0, column=1, padx=5, pady=5)
 
         self.cancel_button = ctk.CTkButton(button_frame, text="Cancelar", command=self.destroy, fg_color="gray50", hover_color="gray60", width=100)
@@ -172,6 +172,20 @@ class SettingsDialog(ctk.CTkToplevel):
         self.monitor_optionmenu = ctk.CTkOptionMenu(tab_frame, variable=self.selected_monitor_var, values=self.monitor_display_list, width=300, dynamic_resizing=False)
         self.monitor_optionmenu.grid(row=0, column=1, padx=10, pady=(20,5), sticky="ew")
         ctk.CTkLabel(tab_frame, text="Automático tentará o 2º monitor não primário,\n senão o primário.", font=ctk.CTkFont(size=10)).grid(row=1, column=1, padx=10, pady=(0,10), sticky="w")
+
+    def on_save(self):
+        """Salva as configurações de projeção no arquivo de configuração."""
+        selected_monitor_display = self.selected_monitor_var.get()
+        monitor_index_to_save = self.monitor_map_for_saving.get(selected_monitor_display, "") 
+        self.config_manager.set_setting('Display', 'projection_monitor_index', monitor_index_to_save)
+        
+        messagebox.showinfo("Configurações Salvas", 
+                            "As configurações de projeção foram salvas.\n\n"
+                            "O monitor selecionado será usado na próxima vez\n"
+                            "que a janela de projeção for aberta.",
+                            parent=self)
+
+        self.destroy()
 
     def _center_window_on_master(self):
         self.after(20, self._do_center) 
