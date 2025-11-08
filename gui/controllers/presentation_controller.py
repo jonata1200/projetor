@@ -1,7 +1,7 @@
-import customtkinter as ctk
 from tkinter import messagebox
 from screeninfo import get_monitors
 from gui.projection_window import ProjectionWindow
+from gui.views import AllSlidesViewWindow
 
 class PresentationController:
     def __init__(self, master, ui_elements, config_manager):
@@ -14,6 +14,7 @@ class PresentationController:
         self.current_index = -1
         self.content_type = None
         self.content_id = None
+        self.all_slides_window = None
 
         self._setup_callbacks()
 
@@ -22,7 +23,27 @@ class PresentationController:
         self.ui["btn_next"].configure(command=self.next_slide)
         self.ui["btn_projection"].configure(command=self.handle_projection_button)
         self.ui["btn_clear"].configure(command=self.clear_projection_content)
-    
+        self.ui["btn_show_all"].configure(command=self.show_all_slides_view)
+
+    def show_all_slides_view(self):
+        """Abre a janela com a visualização de todos os slides."""
+        if not self.slides:
+            return
+        
+        # Se a janela já estiver aberta, traga-a para a frente
+        if self.all_slides_window and self.all_slides_window.winfo_exists():
+            self.all_slides_window.lift()
+            # Atualiza a seleção caso tenha mudado
+            self.all_slides_window.update_current_selection_highlight(self.current_index)
+            return
+            
+        self.all_slides_window = AllSlidesViewWindow(
+            master=self.master,
+            slides_list=self.slides,
+            current_slide_index=self.current_index,
+            callback_goto_slide=self.go_to_slide
+        )
+
     def load_content(self, content_type, slides, content_id=None):
         """Ponto de entrada central para carregar novo conteúdo (música ou bíblia)."""
         self.content_type = content_type
@@ -74,6 +95,7 @@ class PresentationController:
         has_slides = bool(self.slides)
         self.ui["btn_prev"].configure(state="normal" if has_slides else "disabled")
         self.ui["btn_next"].configure(state="normal" if has_slides else "disabled")
+        self.ui["btn_show_all"].configure(state="normal" if has_slides else "disabled")
 
     def handle_projection_button(self):
         """

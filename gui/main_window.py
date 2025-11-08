@@ -75,20 +75,38 @@ class MainWindow(ctk.CTk):
         def _on_resize(event):
             self.slide_preview_label.configure(wraplength=event.width * 0.95)
         preview_frame.bind("<Configure>", _on_resize)
-        
+
         controls_frame = ctk.CTkFrame(outer_frame)
         controls_frame.grid(row=2, column=0, pady=(5,0), padx=5, sticky="ew")
-        controls_frame.grid_columnconfigure((0, 3), weight=1)
-        
+
+        # Configure 3 colunas: [Anterior] [---CENTRO EXPANSÍVEL---] [Próximo]
+        controls_frame.grid_columnconfigure(0, weight=0) # Coluna do botão Anterior
+        controls_frame.grid_columnconfigure(1, weight=1) # Coluna central que se expande
+        controls_frame.grid_columnconfigure(2, weight=0) # Coluna do botão Próximo
+
+        # Botão Anterior na coluna 0, alinhado à esquerda
         self.btn_prev_slide = ctk.CTkButton(controls_frame, text="< Anterior", state="disabled")
-        self.btn_prev_slide.grid(row=0, column=0, pady=5, padx=2, sticky="ew")
+        self.btn_prev_slide.grid(row=0, column=0, pady=5, padx=5, sticky="w")
         
+        # Crie um sub-frame para os widgets do meio
+        middle_sub_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
+        middle_sub_frame.grid(row=0, column=1, pady=5, padx=5, sticky="ew")
+
+        # Posicione o sub-frame no centro da coluna expansível
+        middle_sub_frame.grid_columnconfigure(0, weight=1)
+        middle_sub_frame.grid_columnconfigure(1, weight=0)
+        middle_sub_frame.grid_columnconfigure(2, weight=1)
+
+        # Adicione os widgets DENTRO do sub-frame
+        self.btn_show_all_slides = ctk.CTkButton(middle_sub_frame, text="Ver Todos", state="disabled", width=100)
+        self.btn_show_all_slides.pack(side="left", padx=10)
         
-        self.slide_indicator_label = ctk.CTkLabel(controls_frame, text="- / -")
-        self.slide_indicator_label.grid(row=0, column=1, columnspan=2, pady=5, padx=10)
+        self.slide_indicator_label = ctk.CTkLabel(middle_sub_frame, text="- / -")
+        self.slide_indicator_label.pack(side="left", padx=10)
         
+        # Botão Próximo na coluna 2, alinhado à direita
         self.btn_next_slide = ctk.CTkButton(controls_frame, text="Próximo >", state="disabled")
-        self.btn_next_slide.grid(row=0, column=3, pady=5, padx=2, sticky="ew")
+        self.btn_next_slide.grid(row=0, column=2, pady=5, padx=5, sticky="e")
 
     def _create_main_tabs(self):
         """Cria o contêiner de abas e chama os métodos para construir a UI de cada aba."""
@@ -161,7 +179,8 @@ class MainWindow(ctk.CTk):
             "btn_prev": self.btn_prev_slide,
             "btn_next": self.btn_next_slide,
             "btn_projection": self.btn_projection_control,
-            "btn_clear": self.btn_clear_projection
+            "btn_clear": self.btn_clear_projection,
+            "btn_show_all": self.btn_show_all_slides
         }
         self.presentation_controller = PresentationController(self, presentation_ui, self.config_manager)
 

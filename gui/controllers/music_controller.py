@@ -1,4 +1,5 @@
 import customtkinter as ctk
+import threading
 from tkinter import messagebox
 from gui.dialogs import AddEditSongDialog
 
@@ -123,8 +124,8 @@ class MusicController:
 
     def show_import_dialog(self):
         """
-        Abre um diálogo para o usuário inserir uma URL completa do Letras.mus.br
-        e importa a música a partir dela.
+        Abre um diálogo para o usuário inserir uma URL e inicia a importação
+        em uma thread separada para não congelar a UI.
         """
         dialog = ctk.CTkInputDialog(
             text="Digite a URL completa da página da música no Letras.mus.br:",
@@ -141,35 +142,54 @@ class MusicController:
             messagebox.showerror("URL Inválida", "Por favor, insira uma URL válida do site Letras.mus.br.", parent=self.master)
             return
         
-        btn = self.view["btn_import"]
-        btn.configure(state="disabled", text="Importando...")
-        self.master.update_idletasks()
+        # Inicia a thread para a tarefa de scraping
+        thread = threading.Thread(target=self._threaded_import, args=(song_url,), daemon=True)
+        thread.start()
 
+        # Desabilita o botão e informa o usuário que o processo começou
+        self.view["btn_import"].configure(state="disabled", text="Importando...")
+
+    def _threaded_import(self, song_url):
+        """
+        Esta função é executada em uma thread separada (background).
+        Ela faz o scraping e depois agenda a atualização da UI na thread principal.
+        """
         try:
             music_data = self.scraper.fetch_lyrics_from_url(song_url)
-            
-            if music_data and music_data.get("lyrics_full"):
-                title = music_data.get("title", "Título Desconhecido")
-                artist = music_data.get("artist", "Artista Desconhecido")
-
-                if self.manager.is_duplicate(title, artist):
-                    if not messagebox.askyesno("Música Existente", f"A música '{title}' por '{artist}' já parece existir. Deseja importá-la mesmo assim?"):
-                        return
-
-                added_song = self.manager.add_music(title, artist, music_data["lyrics_full"])
-                if added_song:
-                    messagebox.showinfo("Importação Concluída", f"Música '{added_song['title']}' importada com sucesso!", parent=self.master)
-                    self.load_music_list()
-                else:
-                    messagebox.showerror("Erro de Importação", "Não foi possível salvar a música no banco de dados.", parent=self.master)
-            else:
-                messagebox.showwarning("Falha na Importação", f"Não foi possível encontrar a letra na URL fornecida.\nVerifique se a URL está correta ou se a página da música ainda existe.", parent=self.master)
-        
+            # Agenda a chamada da função de conclusão na thread principal
+            self.master.after(0, self._on_import_finished, music_data)
         except Exception as e:
-            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro durante a importação: {e}", parent=self.master)
-        
-        finally:
-            btn.configure(state="normal", text="Importar (URL)")
+            # Em caso de erro, também agenda a atualização da UI
+            self.master.after(0, self._on_import_finished, None, e)
+
+    def _on_import_finished(self, music_data, error=None):
+        """
+        Esta função é executada de volta na thread principal da UI.
+        É seguro atualizar widgets aqui.
+        """
+        # Sempre reabilita o botão ao final do processo
+        self.view["btn_import"].configure(state="normal", text="Importar (URL)")
+
+        if error:
+            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro durante a importação: {error}", parent=self.master)
+            return
+
+        if music_data and music_data.get("lyrics_full"):
+            title = music_data.get("title", "Título Desconhecido")
+            artist = music_data.get("artist", "Artista Desconhecido")
+
+            if self.manager.is_duplicate(title, artist):
+                if not messagebox.askyesno("Música Existente", f"A música '{title}' por '{artist}' já parece existir. Deseja importá-la mesmo assim?"):
+                    return
+
+            added_song = self.manager.add_music(title, artist, music_data["lyrics_full"])
+            if added_song:
+                messagebox.showinfo("Importação Concluída", f"Música '{added_song['title']}' importada com sucesso!", parent=self.master)
+                self.load_music_list()
+            else:
+                messagebox.showerror("Erro de Importação", "Não foi possível salvar a música no banco de dados.", parent=self.master)
+        else:
+            messagebox.showwarning("Falha na Importação", f"Não foi possível encontrar a letra na URL fornecida.\nVerifique se a URL está correta ou se a página da música ainda existe.", parent=self.master)
 
     def confirm_delete(self):
         if not self.current_song_id: return

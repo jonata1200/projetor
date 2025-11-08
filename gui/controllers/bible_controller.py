@@ -1,4 +1,4 @@
-import customtkinter as ctk
+import threading
 from tkinter import messagebox
 
 class BibleController:
@@ -93,8 +93,7 @@ class BibleController:
     
     def load_verses(self):
         """
-        Pega a seleção atual, busca os versículos através do manager e
-        notifica o PresentationController para exibi-los.
+        Valida a seleção e inicia o carregamento de versículos em uma thread separada.
         """
         version_name = self.view["version_var"].get()
         book_name = self.view["book_var"].get()
@@ -115,10 +114,45 @@ class BibleController:
         book_abbrev_obj = book_data['abbrev']
         book_abbrev = book_abbrev_obj.get('pt', '') if isinstance(book_abbrev_obj, dict) else book_abbrev_obj
         chapter_num = int(chapter_str)
-
-        slides = self.manager.get_verses_as_slides(version_abbrev, book_abbrev, chapter_num)
         
-        if not slides:
-            slides = [f"Nenhum versículo encontrado para\n{book_name} {chapter_num} ({version_name})"]
+        # Argumentos para a thread
+        args = (version_abbrev, book_abbrev, chapter_num, book_name, version_name)
 
+        # Inicia a thread
+        thread = threading.Thread(target=self._threaded_load_verses, args=args, daemon=True)
+        thread.start()
+
+        # Atualiza a UI para mostrar que está carregando
+        self.view["btn_load"].configure(state="disabled", text="Carregando...")
+
+    def _threaded_load_verses(self, version_abbrev, book_abbrev, chapter_num, book_name, version_name):
+        """
+        Executado em segundo plano. Busca os versículos na API.
+        """
+        try:
+            slides = self.manager.get_verses_as_slides(version_abbrev, book_abbrev, chapter_num)
+            
+            if not slides:
+                # Cria uma mensagem de "não encontrado" para passar para a UI
+                slides = [f"Nenhum versículo encontrado para\n{book_name} {chapter_num} ({version_name})"]
+            
+            # Agenda a atualização da UI na thread principal
+            self.master.after(0, self._on_verses_loaded, slides)
+        except Exception as e:
+            # Se ocorrer um erro de rede, agenda a exibição do erro
+            error_message = f"Erro ao buscar versículos: {e}"
+            self.master.after(0, self._on_verses_loaded, None, error_message)
+
+    def _on_verses_loaded(self, slides, error=None):
+        """
+        Executado de volta na thread principal. Atualiza a UI com os resultados.
+        """
+        # Sempre reabilita o botão
+        self.view["btn_load"].configure(state="normal", text="Carregar Versículos")
+
+        if error:
+            messagebox.showerror("Erro de Rede", error, parent=self.master)
+            return
+        
+        # Envia o conteúdo para o controlador de apresentação
         self.on_content_selected("bible", slides)
