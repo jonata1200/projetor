@@ -33,12 +33,11 @@ class ProjectionWindow(ctk.CTkToplevel):
 
     def __init__(self, master, controller, target_monitor_geometry, config_manager, on_ready_callback=None):
         super().__init__(master)
-        # ... (código de __init__ existente, sem grandes alterações)
         self.master_app = master
         self.controller = controller
         self.config_manager = config_manager
         self.on_ready_callback = on_ready_callback
-        self.title("Projetor IA")
+        self.title("Projetor")
         
         try:
             font_size = self.config_manager.get_int_setting('Projection', 'font_size', 60)
@@ -49,8 +48,6 @@ class ProjectionWindow(ctk.CTkToplevel):
 
         self.original_bg_color = bg_color
         self.is_overridden = False
-
-        # --- NOVAS VARIÁVEIS DE ESTADO PARA ANIMAÇÃO ---
         self.is_fading = False
         self._after_id_fade = None
 
@@ -63,11 +60,26 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.snowflakes = []
         self.animation_running = False
         self._after_id_snow = None
-        self.bind("<Configure>", self._on_resize)
+
+        # --- INÍCIO DA CORREÇÃO DOS ATALHOS ---
+        # Vincula os atalhos de teclado diretamente a esta janela.
+        # Isso garante que eles funcionem mesmo quando esta janela tem o foco.
+        self.bind("<Right>", lambda e: self.controller.next_slide())
+        self.bind("<Left>", lambda e: self.controller.prev_slide())
+        self.bind("<b>", lambda e: self.controller.toggle_black_screen())
+        self.bind("<w>", lambda e: self.controller.toggle_white_screen())
+        self.bind("<c>", lambda e: self.controller.clear_projection_content())
+
+        # Garante que todas as formas de fechar a janela sejam consistentes
         self.bind("<Escape>", self.close_window)
         self.main_canvas.bind("<Double-Button-1>", self.close_window)
         self.projection_label.bind("<Double-Button-1>", self.close_window)
         self.protocol("WM_DELETE_WINDOW", self.close_window)
+        # --- FIM DA CORREÇÃO DOS ATALHOS ---
+        
+        # O bind <Configure> é mantido
+        self.bind("<Configure>", self._on_resize)
+        
         self.after(50, self._initialize_layout)
         self.lift()
         self.focus_force()
