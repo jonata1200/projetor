@@ -41,6 +41,8 @@ class ProjectionWindow(ctk.CTkToplevel):
             font_color = 'white'
             bg_color = 'black'
 
+        self.original_bg_color = bg_color
+        self.is_overridden = False
 
         self.overrideredirect(True)
         self.geometry(f"{target_monitor_geometry['width']}x{target_monitor_geometry['height']}+{target_monitor_geometry['x']}+{target_monitor_geometry['y']}")
@@ -73,6 +75,28 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.lift()
         self.focus_force()
 
+    def toggle_override_screen(self, color=None):
+        """
+        Ativa ou desativa um estado de override (tela preta/branca).
+        Se 'color' for fornecido, ativa o override.
+        Se 'color' for None, desativa qualquer override.
+        """
+        if color:
+            # Entrando no modo de override
+            if not self.is_overridden:
+                self.projection_label.place_forget() # Esconde o texto
+            self.main_canvas.configure(bg=color)
+            self.is_overridden = True
+        else:
+            # Saindo do modo de override
+            if self.is_overridden:
+                self.main_canvas.configure(bg=self.original_bg_color)
+                # Recoloca o texto no centro
+                width = self.main_canvas.winfo_width()
+                height = self.main_canvas.winfo_height()
+                self.main_canvas.coords(self.label_window_id, width / 2, height / 2)
+                self.is_overridden = False
+
     def close_window(self, event=None):
         """Notifica o controlador e depois destrói a si mesma."""
             
@@ -98,7 +122,12 @@ class ProjectionWindow(ctk.CTkToplevel):
 
     def update_content(self, text):
         if self.projection_label.winfo_exists():
+            # Se a tela está em override, o texto é atualizado mas permanece invisível.
             self.projection_label.configure(text=text)
+            
+            # Se não estiver em override, garante que o texto esteja visível
+            if not self.is_overridden:
+                self.main_canvas.itemconfigure(self.label_window_id, state='normal')
 
     def _on_resize(self, event=None):
         if not self.winfo_exists() or self.winfo_width() <= 1: return

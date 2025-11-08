@@ -264,3 +264,56 @@ class SettingsDialog(ctk.CTkToplevel):
             x = max(0, min(x, screen_width - dialog_width)); y = max(0, min(y, screen_height - dialog_height))
             self.geometry(f"+{x}+{y}")
         except Exception: pass
+
+
+class ShortcutsHelpDialog(ctk.CTkToplevel):
+    """
+    Uma janela de diálogo simples que exibe uma lista de todos os atalhos
+    de teclado disponíveis no aplicativo.
+    """
+    def __init__(self, master):
+        super().__init__(master)
+        
+        self.transient(master)
+        self.grab_set()
+        self.title("Atalhos do Teclado")
+        self.geometry("400x280")
+        self.resizable(False, False)
+
+        # Dados dos atalhos (fácil de atualizar aqui)
+        shortcuts = [
+            ("➡️", "Avançar para o Próximo Slide"),
+            ("⬅️", "Voltar para o Slide Anterior"),
+            ("B", "Tela Preta (Blackout)"),
+            ("W", "Tela Branca (Whiteout)"),
+            ("C", "Limpar Conteúdo da Projeção"),
+            ("Esc", "Fechar Janela de Projeção")
+        ]
+
+        # Frame principal para o conteúdo
+        main_frame = ctk.CTkFrame(self)
+        main_frame.pack(fill="both", expand=True, padx=15, pady=15)
+        main_frame.grid_columnconfigure(1, weight=1)
+
+        # Cabeçalho da tabela
+        header_font = ctk.CTkFont(weight="bold")
+        ctk.CTkLabel(main_frame, text="Atalho", font=header_font).grid(row=0, column=0, sticky="w", padx=(0, 20))
+        ctk.CTkLabel(main_frame, text="Ação", font=header_font).grid(row=0, column=1, sticky="w")
+        
+        # Separador visual
+        ctk.CTkFrame(main_frame, height=2, fg_color="gray50").grid(row=1, column=0, columnspan=2, pady=(5, 10), sticky="ew")
+
+        # Preenche a lista de atalhos
+        for i, (key, description) in enumerate(shortcuts):
+            row_num = i + 2
+            key_label = ctk.CTkLabel(main_frame, text=key)
+            key_label.grid(row=row_num, column=0, sticky="w", pady=2)
+            
+            desc_label = ctk.CTkLabel(main_frame, text=description)
+            desc_label.grid(row=row_num, column=1, sticky="w", pady=2)
+
+        # Botão para fechar a janela
+        close_button = ctk.CTkButton(self, text="Fechar", command=self.destroy)
+        close_button.pack(pady=(0, 15))
+        
+        self.after(50, self.lift) # Garante que a janela apareça na frente

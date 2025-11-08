@@ -18,6 +18,22 @@ class PresentationController:
 
         self._setup_callbacks()
 
+    def toggle_black_screen(self):
+        """Ativa/desativa o modo de tela preta."""
+        if self.projection_window and self.projection_window.winfo_exists():
+            if self.projection_window.is_overridden and self.projection_window.main_canvas.cget("bg") == "black":
+                self.projection_window.toggle_override_screen(None) # Desativa se já estiver preto
+            else:
+                self.projection_window.toggle_override_screen("black") # Ativa
+
+    def toggle_white_screen(self):
+        """Ativa/desativa o modo de tela branca."""
+        if self.projection_window and self.projection_window.winfo_exists():
+            if self.projection_window.is_overridden and self.projection_window.main_canvas.cget("bg") == "white":
+                self.projection_window.toggle_override_screen(None) # Desativa se já estiver branco
+            else:
+                self.projection_window.toggle_override_screen("white") # Ativa
+
     def _setup_callbacks(self):
         self.ui["btn_prev"].configure(command=self.prev_slide)
         self.ui["btn_next"].configure(command=self.next_slide)
@@ -46,6 +62,11 @@ class PresentationController:
 
     def load_content(self, content_type, slides, content_id=None):
         """Ponto de entrada central para carregar novo conteúdo (música ou bíblia)."""
+        # --- ADICIONE ESTAS 3 LINHAS ---
+        if self.projection_window and self.projection_window.winfo_exists() and self.projection_window.is_overridden:
+            self.projection_window.toggle_override_screen(None)
+        # --- FIM DA ADIÇÃO ---
+
         self.content_type = content_type
         self.slides = slides if slides else []
         self.content_id = content_id
@@ -77,16 +98,31 @@ class PresentationController:
             self.projection_window.clear_content()
 
     def next_slide(self):
+        # --- ADICIONE ESTAS 3 LINHAS ---
+        if self.projection_window and self.projection_window.winfo_exists() and self.projection_window.is_overridden:
+            self.projection_window.toggle_override_screen(None)
+        # --- FIM DA ADIÇÃO ---
+        
         if self.slides and self.current_index < len(self.slides) - 1:
             self.current_index += 1
             self.update_slide_view()
 
     def prev_slide(self):
+        # --- ADICIONE ESTAS 3 LINHAS ---
+        if self.projection_window and self.projection_window.winfo_exists() and self.projection_window.is_overridden:
+            self.projection_window.toggle_override_screen(None)
+        # --- FIM DA ADIÇÃO ---
+
         if self.slides and self.current_index > 0:
             self.current_index -= 1
             self.update_slide_view()
 
     def go_to_slide(self, index):
+        # --- ADICIONE ESTAS 3 LINHAS ---
+        if self.projection_window and self.projection_window.winfo_exists() and self.projection_window.is_overridden:
+            self.projection_window.toggle_override_screen(None)
+        # --- FIM DA ADIÇÃO ---
+
         if self.slides and 0 <= index < len(self.slides):
             self.current_index = index
             self.update_slide_view()
@@ -170,6 +206,11 @@ class PresentationController:
         self.ui["btn_projection"].configure(text=text)
 
     def clear_projection_content(self):
+        # --- ADICIONE ESTAS 3 LINHAS ---
+        if self.projection_window and self.projection_window.winfo_exists() and self.projection_window.is_overridden:
+            self.projection_window.toggle_override_screen(None)
+        # --- FIM DA ADIÇÃO ---
+
         self.slides = []
         self.current_index = -1
         self.content_type = None

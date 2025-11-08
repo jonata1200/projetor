@@ -3,12 +3,12 @@ from core.music_manager import MusicManager
 from core.bible_manager import BibleManager
 from services.letras_scraper import LetrasScraper
 from core.config_manager import ConfigManager
-from gui.dialogs import SettingsDialog
 from .controllers.presentation_controller import PresentationController
 from .controllers.music_controller import MusicController
 from .controllers.bible_controller import BibleController
 from .controllers.playlist_controller import PlaylistController
 from .controllers.text_controller import TextController
+from gui.dialogs import SettingsDialog, ShortcutsHelpDialog
 
 class MainWindow(ctk.CTk):
     def __init__(self):
@@ -40,7 +40,10 @@ class MainWindow(ctk.CTk):
         self.bind("<Escape>", lambda e: self.presentation_controller.close_projection_window())
         self.bind("<Right>", lambda e: self.presentation_controller.next_slide())
         self.bind("<Left>", lambda e: self.presentation_controller.prev_slide())
-        
+        self.bind("<b>", lambda e: self.presentation_controller.toggle_black_screen())
+        self.bind("<w>", lambda e: self.presentation_controller.toggle_white_screen())
+        self.bind("<c>", lambda e: self.presentation_controller.clear_projection_content())
+
         self.is_dark_mode = ctk.get_appearance_mode() == "Dark"
         self.update_theme_button_text()
 
@@ -51,8 +54,6 @@ class MainWindow(ctk.CTk):
         
         self.btn_projection_control = ctk.CTkButton(top_frame, text="Abrir Projeção")
         self.btn_projection_control.pack(side="left", padx=5)
-        
-        # O botão "Limpar Tela" foi removido daqui.
 
         self.theme_button = ctk.CTkButton(top_frame, text="Tema", command=self.toggle_theme)
         self.theme_button.pack(side="right", padx=5)
@@ -60,6 +61,16 @@ class MainWindow(ctk.CTk):
         self.btn_settings = ctk.CTkButton(top_frame, text="⚙️", width=40, command=self.show_settings_dialog)
         self.btn_settings.pack(side="right", padx=5)
         
+        # --- INÍCIO DA ADIÇÃO DO BOTÃO DE AJUDA ---
+        self.btn_shortcuts = ctk.CTkButton(top_frame, text="?", width=40, command=self.show_shortcuts_dialog)
+        self.btn_shortcuts.pack(side="right", padx=(0, 5))
+        # --- FIM DA ADIÇÃO ---
+        
+    def show_shortcuts_dialog(self):
+        """Abre a janela de diálogo com a ajuda dos atalhos."""
+        dialog = ShortcutsHelpDialog(master=self)
+        dialog.wait_window()
+
     def _create_preview_pane(self):
         """Cria o painel direito para pré-visualização e controle de slides."""
         outer_frame = ctk.CTkFrame(self)
