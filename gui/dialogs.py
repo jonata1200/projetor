@@ -117,7 +117,7 @@ class SettingsDialog(ctk.CTkToplevel):
         self.transient(master)
         self.grab_set()
         self.title("Configurações")
-        self.geometry("550x420")
+        self.geometry("550x580")
         self.resizable(False, False)
 
         main_settings_frame = ctk.CTkFrame(self)
@@ -198,6 +198,16 @@ class SettingsDialog(ctk.CTkToplevel):
         ctk.CTkButton(bg_color_frame, text="Escolher...", width=80, command=lambda: self._pick_color(self.bg_color_var)).grid(row=0, column=1, padx=(10,0)) # <-- NOVO BOTÃO
 
         ctk.CTkLabel(tab_frame, text="Use o botão 'Escolher' ou digite um nome de cor\n em inglês (ex: white) ou código hex (ex: #FFFFFF).", font=ctk.CTkFont(size=10)).grid(row=6, column=1, padx=10, pady=(0,10), sticky="w")
+
+        # --- INÍCIO DA ADIÇÃO DA ANIMAÇÃO ---
+        ctk.CTkLabel(tab_frame, text="Animação de Fundo:").grid(row=7, column=0, padx=10, pady=5, sticky="w")
+        
+        self.animation_options = ["Nenhuma", "Neve", "Partículas Flutuantes", "Estrelas Cintilantes", "Linhas de Conexão"]
+        self.animation_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'animation_type', 'Neve'))
+        
+        self.animation_optionmenu = ctk.CTkOptionMenu(tab_frame, variable=self.animation_var, values=self.animation_options)
+        self.animation_optionmenu.grid(row=7, column=1, padx=10, pady=5, sticky="ew")
+        # --- FIM DA ADIÇÃO ---
     
     def _pick_color(self, string_var_to_update):
         """
@@ -222,8 +232,6 @@ class SettingsDialog(ctk.CTkToplevel):
         monitor_index_to_save = self.monitor_map_for_saving.get(selected_monitor_display, "") 
         self.config_manager.set_setting('Display', 'projection_monitor_index', monitor_index_to_save)
         
-        # --- INÍCIO DA ADIÇÃO PARA SALVAR NOVAS OPÇÕES ---
-
         # Valida e salva o tamanho da fonte
         font_size_val = self.font_size_entry.get()
         if font_size_val.isdigit() and int(font_size_val) > 0:
@@ -237,8 +245,9 @@ class SettingsDialog(ctk.CTkToplevel):
         self.config_manager.set_setting('Projection', 'font_color', self.font_color_entry.get().strip())
         self.config_manager.set_setting('Projection', 'bg_color', self.bg_color_entry.get().strip())
 
-        # --- FIM DA ADIÇÃO ---
-        
+        # Salva a animação escolhida
+        self.config_manager.set_setting('Projection', 'animation_type', self.animation_var.get())
+
         messagebox.showinfo("Configurações Salvas", 
                             "As configurações foram salvas.\n\n"
                             "As novas configurações de aparência serão aplicadas\n"

@@ -22,7 +22,8 @@ class ConfigManager:
         self.config['Projection'] = {
             'font_size': '60',
             'font_color': 'white',
-            'bg_color': 'black'
+            'bg_color': 'black',
+            'animation_type': 'Neve'
         }
         # --- FIM DA ADIÇÃO ---
 
