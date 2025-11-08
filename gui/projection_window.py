@@ -28,7 +28,7 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.master_app = master
         self.controller = controller
         self.on_ready_callback = on_ready_callback
-        self.title("Projetor IA")
+        self.title("Projetor")
 
         self.overrideredirect(True)
         self.geometry(f"{target_monitor_geometry['width']}x{target_monitor_geometry['height']}+{target_monitor_geometry['x']}+{target_monitor_geometry['y']}")

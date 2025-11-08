@@ -8,11 +8,12 @@ from .controllers.presentation_controller import PresentationController
 from .controllers.music_controller import MusicController
 from .controllers.bible_controller import BibleController
 from .controllers.playlist_controller import PlaylistController
+from .controllers.text_controller import TextController
 
 class MainWindow(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Projetor IA")
+        self.title("Projetor")
         self.geometry("950x700")
 
         # Gerenciadores de Lógica
@@ -51,8 +52,7 @@ class MainWindow(ctk.CTk):
         self.btn_projection_control = ctk.CTkButton(top_frame, text="Abrir Projeção")
         self.btn_projection_control.pack(side="left", padx=5)
         
-        self.btn_clear_projection = ctk.CTkButton(top_frame, text="Limpar Tela")
-        self.btn_clear_projection.pack(side="left", padx=5)
+        # O botão "Limpar Tela" foi removido daqui.
 
         self.theme_button = ctk.CTkButton(top_frame, text="Tema", command=self.toggle_theme)
         self.theme_button.pack(side="right", padx=5)
@@ -90,16 +90,18 @@ class MainWindow(ctk.CTk):
         self.btn_prev_slide.grid(row=0, column=0, pady=5, padx=5, sticky="w")
         
         middle_sub_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
-        middle_sub_frame.grid(row=0, column=1, pady=5, padx=5, sticky="ew")
-        middle_sub_frame.grid_columnconfigure(0, weight=1)
-        middle_sub_frame.grid_columnconfigure(1, weight=0)
-        middle_sub_frame.grid_columnconfigure(2, weight=1)
+        middle_sub_frame.grid(row=0, column=1, pady=5, padx=5) # sticky="ew" removido para centralizar
 
+        # Adicione os widgets DENTRO do sub-frame central
         self.btn_show_all_slides = ctk.CTkButton(middle_sub_frame, text="Ver Todos", state="disabled", width=100)
         self.btn_show_all_slides.pack(side="left", padx=10)
         
         self.slide_indicator_label = ctk.CTkLabel(middle_sub_frame, text="- / -")
         self.slide_indicator_label.pack(side="left", padx=10)
+        
+        # --- BOTÃO NOVO ADICIONADO AQUI ---
+        self.btn_clear_preview = ctk.CTkButton(middle_sub_frame, text="Limpar", width=80, fg_color=("gray70", "gray30"))
+        self.btn_clear_preview.pack(side="left", padx=10)
         
         self.btn_next_slide = ctk.CTkButton(controls_frame, text="Próximo >", state="disabled")
         self.btn_next_slide.grid(row=0, column=2, pady=5, padx=5, sticky="e")
@@ -112,12 +114,34 @@ class MainWindow(ctk.CTk):
         self.tab_playlist = self.tab_view.add("Ordem de Culto")
         self.tab_music = self.tab_view.add("Músicas")
         self.tab_bible = self.tab_view.add("Bíblia")
-        
+        self.tab_text = self.tab_view.add("Avisos / Texto")
+
         self._setup_playlist_tab_ui(self.tab_playlist)
         self._setup_music_tab_ui(self.tab_music)
         self._setup_bible_tab_ui(self.tab_bible)
-        
+        self._setup_text_tab_ui(self.tab_text)
+
         self.tab_view.set("Ordem de Culto") # Inicia na aba da playlist
+
+    def _setup_text_tab_ui(self, tab):
+        """Cria os widgets para a aba de Texto Livre / Avisos."""
+        tab.grid_columnconfigure(0, weight=1)
+        tab.grid_rowconfigure(0, weight=1) # A caixa de texto vai expandir
+
+        # Caixa de texto grande para o usuário digitar
+        self.text_input_textbox = ctk.CTkTextbox(tab, font=ctk.CTkFont(size=14), wrap="word")
+        self.text_input_textbox.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+
+        # Frame para os botões de ação
+        buttons_frame = ctk.CTkFrame(tab)
+        buttons_frame.grid(row=1, column=0, padx=5, pady=5, sticky="ew")
+        buttons_frame.grid_columnconfigure(0, weight=1) # Faz o botão de projetar expandir
+
+        self.btn_project_text = ctk.CTkButton(buttons_frame, text="Projetar Texto")
+        self.btn_project_text.grid(row=0, column=0, padx=(0,5), sticky="ew")
+
+        self.btn_clear_text = ctk.CTkButton(buttons_frame, text="Limpar Caixa", width=120)
+        self.btn_clear_text.grid(row=0, column=1, padx=(5,0), sticky="e")
 
     def _setup_playlist_tab_ui(self, tab):
         """Cria os widgets para a aba da Ordem de Culto."""
@@ -143,38 +167,42 @@ class MainWindow(ctk.CTk):
         self.playlist_scroll_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=(0, 5))
 
     def _setup_music_tab_ui(self, tab):
-        """Cria os widgets para a aba de Músicas."""
+        """Cria os widgets para a aba de Músicas com um layout melhorado."""
+
         tab.grid_columnconfigure(0, weight=1)
-        tab.grid_rowconfigure(1, weight=1)
+        tab.grid_rowconfigure(1, weight=1) # Apenas a lista de músicas expande
 
-        actions_frame = ctk.CTkFrame(tab)
-        actions_frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
-        actions_frame.grid_columnconfigure(0, weight=1)
+        # --- Frame superior para busca e adição ---
+        top_actions_frame = ctk.CTkFrame(tab)
+        top_actions_frame.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+        top_actions_frame.grid_columnconfigure(0, weight=1) # Campo de busca expande
 
-        self.music_search_entry = ctk.CTkEntry(actions_frame, placeholder_text="Buscar música...")
+        self.music_search_entry = ctk.CTkEntry(top_actions_frame, placeholder_text="Buscar música...")
         self.music_search_entry.grid(row=0, column=0, padx=(0,5), pady=5, sticky="ew")
 
-        # Frame para agrupar os botões de ação à direita
-        buttons_frame = ctk.CTkFrame(actions_frame, fg_color="transparent")
-        buttons_frame.grid(row=0, column=1, sticky="e")
+        self.btn_import_music = ctk.CTkButton(top_actions_frame, text="Importar (URL)")
+        self.btn_import_music.grid(row=0, column=1, padx=5, pady=5)
 
-        self.btn_add_to_playlist_music = ctk.CTkButton(buttons_frame, text="Adicionar à Ordem", state="disabled", fg_color="sea green", hover_color="dark sea green")
-        self.btn_add_to_playlist_music.pack(side="left", padx=(0,10))
-
-        self.btn_import_music = ctk.CTkButton(buttons_frame, text="Importar (URL)")
-        self.btn_import_music.pack(side="left", padx=5)
-
-        self.btn_add_manual_music = ctk.CTkButton(buttons_frame, text="Adicionar Nova")
-        self.btn_add_manual_music.pack(side="left", padx=5)
-
-        self.btn_edit_song = ctk.CTkButton(buttons_frame, text="Editar", state="disabled")
-        self.btn_edit_song.pack(side="left", padx=5)
+        self.btn_add_manual_music = ctk.CTkButton(top_actions_frame, text="Adicionar Nova")
+        self.btn_add_manual_music.grid(row=0, column=2, padx=5, pady=5)
         
-        self.btn_delete_song = ctk.CTkButton(buttons_frame, text="Excluir", state="disabled", fg_color="#D32F2F", hover_color="#B71C1C")
-        self.btn_delete_song.pack(side="left", padx=5)
-
+        # --- Lista de Músicas (no meio) ---
         self.music_scroll_frame = ctk.CTkScrollableFrame(tab, label_text=None)
         self.music_scroll_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=(0, 5))
+
+        # --- Frame inferior para ações contextuais ---
+        bottom_actions_frame = ctk.CTkFrame(tab)
+        bottom_actions_frame.grid(row=2, column=0, padx=5, pady=5, sticky="ew")
+        bottom_actions_frame.grid_columnconfigure((0, 4), weight=1) # Colunas vazias para centralizar
+
+        self.btn_add_to_playlist_music = ctk.CTkButton(bottom_actions_frame, text="✔ Adicionar à Ordem", state="disabled", fg_color="sea green", hover_color="dark sea green")
+        self.btn_add_to_playlist_music.grid(row=0, column=1, padx=5, pady=5)
+
+        self.btn_edit_song = ctk.CTkButton(bottom_actions_frame, text="✎ Editar", state="disabled")
+        self.btn_edit_song.grid(row=0, column=2, padx=5, pady=5)
+        
+        self.btn_delete_song = ctk.CTkButton(bottom_actions_frame, text="❌ Excluir", state="disabled", fg_color="#D32F2F", hover_color="#B71C1C")
+        self.btn_delete_song.grid(row=0, column=3, padx=5, pady=5)
 
     def _setup_bible_tab_ui(self, tab):
         """Cria os widgets para a aba da Bíblia."""
@@ -217,7 +245,7 @@ class MainWindow(ctk.CTk):
             "btn_prev": self.btn_prev_slide,
             "btn_next": self.btn_next_slide,
             "btn_projection": self.btn_projection_control,
-            "btn_clear": self.btn_clear_projection,
+            "btn_clear": self.btn_clear_preview, # <-- ALTERE DE self.btn_clear_projection PARA self.btn_clear_preview
             "btn_show_all": self.btn_show_all_slides
         }
         self.presentation_controller = PresentationController(self, presentation_ui, self.config_manager)
@@ -262,6 +290,16 @@ class MainWindow(ctk.CTk):
             self, bible_ui, self.bible_manager,
             self.presentation_controller.load_content,
             self.playlist_controller
+        )
+
+        # Instancia o novo controlador de Texto
+        text_ui = {
+            "textbox": self.text_input_textbox,
+            "btn_project": self.btn_project_text,
+            "btn_clear": self.btn_clear_text
+        }
+        self.text_controller = TextController(
+            self, text_ui, self.presentation_controller
         )
 
     def show_settings_dialog(self):
