@@ -1,11 +1,6 @@
 import requests
 from bs4 import BeautifulSoup
 import re
-try:
-    from unidecode import unidecode
-except ImportError:
-    def unidecode(s):
-        return s 
 
 class LetrasScraper:
     BASE_URL_SEARCH = "https://www.letras.mus.br"
