@@ -23,7 +23,8 @@ class ConfigManager:
             'font_size': '60',
             'font_color': 'white',
             'bg_color': 'black',
-            'animation_type': 'Neve'
+            'animation_type': 'Neve',
+            'animation_color': 'white'
         }
         # --- FIM DA ADIÇÃO ---
 

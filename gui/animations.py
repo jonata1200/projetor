@@ -1,14 +1,16 @@
-import tkinter as tk
 import random
-import math
+
+# =============================================================================
+# Classe Base para Animações
+# =============================================================================
 
 class BaseAnimation:
-    """Classe base para todas as animações de fundo."""
-    def __init__(self, canvas, label_window_id): # <-- MUDANÇA: Recebe o ID
+    def __init__(self, canvas, label_window_id):
         self.canvas = canvas
-        self.label_window_id = label_window_id # <-- MUDANÇA: Armazena o ID
+        self.label_window_id = label_window_id
         self.is_running = False
         self._after_id = None
+        self.particles = []
 
     def start(self):
         if not self.is_running:
@@ -17,133 +19,79 @@ class BaseAnimation:
 
     def stop(self):
         self.is_running = False
-        if self._after_id:
-            self.canvas.after_cancel(self._after_id)
+        if self._after_id: self.canvas.after_cancel(self._after_id)
+
+    def on_resize(self, width, height):
+        raise NotImplementedError
 
     def update_frame(self):
         raise NotImplementedError
 
-# --- ANIMAÇÕES (COM A CORREÇÃO APLICADA) ---
+# =============================================================================
+# Animação 1: Neve
+# =============================================================================
 
-class SnowAnimation(BaseAnimation):
-    NUM_PARTICLES = 150; DELAY = 30
-    def __init__(self, canvas, label_window_id):
-        super().__init__(canvas, label_window_id)
-        self.particles = [SnowFlake(self.canvas.winfo_width(), self.canvas.winfo_height()) for _ in range(self.NUM_PARTICLES)]
-    def update_frame(self):
-        if not self.is_running: return
-        self.canvas.delete("anim_particle")
-        for p in self.particles:
-            p.move()
-            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
-            self.canvas.create_oval(x1, y1, x2, y2, fill="white", outline="", tags="anim_particle")
-        self.canvas.tag_lower("anim_particle")
-        if self.label_window_id: self.canvas.tag_raise(self.label_window_id) # <-- CORREÇÃO
-        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
-
-class FloatingParticlesAnimation(BaseAnimation):
-    NUM_PARTICLES = 100; DELAY = 30
-    def __init__(self, canvas, label_window_id):
-        super().__init__(canvas, label_window_id)
-        self.particles = [FloatingParticle(self.canvas.winfo_width(), self.canvas.winfo_height()) for _ in range(self.NUM_PARTICLES)]
-    def update_frame(self):
-        if not self.is_running: return
-        self.canvas.delete("anim_particle")
-        for p in self.particles:
-            p.move()
-            val = int(p.alpha * 255); color = f'#{val:02x}{val:02x}{val:02x}'
-            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
-            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
-        self.canvas.tag_lower("anim_particle")
-        if self.label_window_id: self.canvas.tag_raise(self.label_window_id) # <-- CORREÇÃO
-        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
-
-class SparklingStarsAnimation(BaseAnimation):
-    NUM_PARTICLES = 200; DELAY = 40
-    def __init__(self, canvas, label_window_id):
-        super().__init__(canvas, label_window_id)
-        self.particles = [Star(self.canvas.winfo_width(), self.canvas.winfo_height()) for _ in range(self.NUM_PARTICLES)]
-    def update_frame(self):
-        if not self.is_running: return
-        self.canvas.delete("anim_particle")
-        for p in self.particles:
-            p.twinkle()
-            val = int(p.alpha * 200) + 55; color = f'#{val:02x}{val:02x}{val:02x}'
-            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
-            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
-        self.canvas.tag_lower("anim_particle")
-        if self.label_window_id: self.canvas.tag_raise(self.label_window_id) # <-- CORREÇÃO
-        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
-
-class ConnectingLinesAnimation(BaseAnimation):
-    NUM_PARTICLES = 70; DELAY = 25; CONNECTION_DISTANCE = 120
-    def __init__(self, canvas, label_window_id):
-        super().__init__(canvas, label_window_id)
-        self.particles = [Node(self.canvas.winfo_width(), self.canvas.winfo_height()) for _ in range(self.NUM_PARTICLES)]
-    def update_frame(self):
-        if not self.is_running: return
-        self.canvas.delete("anim_particle")
-        for p in self.particles: p.move()
-        for i in range(len(self.particles)):
-            for j in range(i + 1, len(self.particles)):
-                p1, p2 = self.particles[i], self.particles[j]
-                dist = math.hypot(p1.x - p2.x, p1.y - p2.y)
-                if dist < self.CONNECTION_DISTANCE:
-                    alpha = 1 - (dist / self.CONNECTION_DISTANCE)
-                    val = int(alpha * 128); color = f'#{val:02x}{val:02x}{val:02x}'
-                    self.canvas.create_line(p1.x, p1.y, p2.x, p2.y, fill=color, tags="anim_particle")
-        self.canvas.tag_lower("anim_particle")
-        if self.label_window_id: self.canvas.tag_raise(self.label_window_id) # <-- CORREÇÃO
-        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
-
-# --- ANIMAÇÃO 1: Neve (Refatorada) ---
 class SnowFlake:
     def __init__(self, w, h):
         self.w, self.h = w, h
-        self.x = random.randint(0, self.w)
-        self.y = random.randint(-self.h, 0)
+        self.x, self.y = random.randint(0, self.w), random.randint(-self.h, 0)
         self.size = random.randint(2, 5)
         self.speed = random.uniform(0.5, 2.0)
         self.drift = random.uniform(-0.3, 0.3)
     def move(self):
         self.y += self.speed; self.x += self.drift
-        if self.y > self.h or self.x < 0 or self.x > self.w:
-            self.y = random.randint(-50, -10); self.x = random.randint(0, self.w)
+        if self.y > self.h or self.x < 0 or self.x > self.w: self.y, self.x = random.randint(-50, -10), random.randint(0, self.w)
 
-# --- ANIMAÇÃO 2: Partículas Flutuantes ---
+class SnowAnimation(BaseAnimation):
+    NUM_PARTICLES, DELAY = 150, 30
+    def on_resize(self, width, height): self.particles = [SnowFlake(width, height) for _ in range(self.NUM_PARTICLES)]
+    def update_frame(self):
+        if not self.is_running: return
+        self.canvas.delete("anim_particle")
+        # A cor será passada pelo __init__ da ProjectionWindow
+        color = getattr(self, 'particle_color', 'white')
+        for p in self.particles:
+            p.move()
+            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
+            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
+        self.canvas.tag_lower("anim_particle")
+        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
+        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
+
+# =============================================================================
+# Animação 2: Partículas Flutuantes
+# =============================================================================
+
 class FloatingParticle:
     def __init__(self, w, h):
         self.w, self.h = w, h
-        self.x = random.randint(0, self.w); self.y = random.randint(0, self.h)
+        self.x, self.y = random.randint(0, self.w), random.randint(0, self.h)
         self.size = random.randint(2, 4)
         self.speed = random.uniform(0.3, 1.2)
         self.drift = random.uniform(-0.2, 0.2)
         self.alpha = random.uniform(0.1, 0.8)
     def move(self):
         self.y -= self.speed; self.x += self.drift
-        if self.y < -self.size or self.x < 0 or self.x > self.w:
-            self.y = self.h + self.size; self.x = random.randint(0, self.w)
+        if self.y < -self.size or self.x < 0 or self.x > self.w: self.y, self.x = self.h + self.size, random.randint(0, self.w)
 
-# --- ANIMAÇÃO 3: Estrelas Cintilantes ---
-class Star:
-    def __init__(self, w, h):
-        self.x, self.y = random.randint(0, w), random.randint(0, h)
-        self.size = random.uniform(0.5, 2.5)
-        self.alpha = random.uniform(0.1, 1.0)
-        self.twinkle_speed = random.uniform(0.01, 0.05)
-        self.cycle = random.uniform(0, 2 * math.pi)
-    def twinkle(self):
-        self.cycle += self.twinkle_speed
-        self.alpha = (math.sin(self.cycle) + 1) / 2 # Varia alpha suavemente entre 0 e 1
-
-# --- ANIMAÇÃO 4: Linhas de Conexão (Plexus) ---
-class Node:
-    def __init__(self, w, h):
-        self.w, self.h = w, h
-        self.x, self.y = random.randint(0, w), random.randint(0, h)
-        self.vx, self.vy = random.uniform(-0.5, 0.5), random.uniform(-0.5, 0.5)
-        self.size = 2
-    def move(self):
-        self.x += self.vx; self.y += self.vy
-        if self.x <= 0 or self.x >= self.w: self.vx *= -1
-        if self.y <= 0 or self.y >= self.h: self.vy *= -1
+class FloatingParticlesAnimation(BaseAnimation):
+    NUM_PARTICLES, DELAY = 100, 30
+    def on_resize(self, width, height): self.particles = [FloatingParticle(width, height) for _ in range(self.NUM_PARTICLES)]
+    def update_frame(self):
+        if not self.is_running: return
+        self.canvas.delete("anim_particle")
+        base_color_hex = getattr(self, 'particle_color', '#FFFFFF')
+        try: # Converte a cor base de hex para RGB
+            r, g, b = int(base_color_hex[1:3], 16), int(base_color_hex[3:5], 16), int(base_color_hex[5:7], 16)
+        except (ValueError, IndexError):
+            r, g, b = 255, 255, 255 # Fallback para branco
+        for p in self.particles:
+            p.move()
+            # Aplica o alpha da partícula à cor base
+            val_r, val_g, val_b = int(p.alpha * r), int(p.alpha * g), int(p.alpha * b)
+            color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
+            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
+            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
+        self.canvas.tag_lower("anim_particle")
+        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
+        self._after_id = self.canvas.after(self.DELAY, self.update_frame)

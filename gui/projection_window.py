@@ -1,7 +1,7 @@
 import customtkinter as ctk
 import tkinter as tk
 # Importa nossas novas classes de animação
-from .animations import SnowAnimation, FloatingParticlesAnimation, SparklingStarsAnimation, ConnectingLinesAnimation
+from .animations import SnowAnimation, FloatingParticlesAnimation
 
 class ProjectionWindow(ctk.CTkToplevel):
     FADE_STEPS = 10
@@ -9,22 +9,21 @@ class ProjectionWindow(ctk.CTkToplevel):
 
     def __init__(self, master, controller, target_monitor_geometry, config_manager, on_ready_callback=None):
         super().__init__(master)
-        # ... (código de setup inicial)
         self.master = master
         self.controller = controller
         self.config_manager = config_manager
         self.on_ready_callback = on_ready_callback
         self.title("Projetor")
 
-        # --- Carregando configurações ---
+        # --- Carregando configurações (incluindo a nova cor) ---
         try:
             font_size = self.config_manager.get_int_setting('Projection', 'font_size', 60)
             font_color = self.config_manager.get_setting('Projection', 'font_color', 'white')
             bg_color = self.config_manager.get_setting('Projection', 'bg_color', 'black')
             animation_type = self.config_manager.get_setting('Projection', 'animation_type', 'Neve')
-            print(f"--- PASSO 1: Animação lida da configuração: '{animation_type}' ---") # <-- ADICIONE AQUI
+            animation_color = self.config_manager.get_setting('Projection', 'animation_color', 'white') # <-- LÊ A NOVA COR
         except Exception:
-            font_size, font_color, bg_color, animation_type = 60, 'white', 'black', 'Neve'
+            font_size, font_color, bg_color, animation_type, animation_color = 60, 'white', 'black', 'Neve', 'white'
 
         self.is_fading, self._after_id_fade = False, None
         
@@ -35,23 +34,19 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.main_canvas.pack(fill="both", expand=True)
         
         self.projection_label = ctk.CTkLabel(self.main_canvas, text="", font=ctk.CTkFont(size=font_size, weight="bold"), text_color=font_color, fg_color=bg_color, justify=ctk.CENTER)
-        
-        # --- MUDANÇA CRÍTICA ---
-        # Cria a janela do label ANTES de criar a animação.
-        # Nós ainda não sabemos a posição correta, então usamos (0,0) como placeholder.
         self.label_window_id = self.main_canvas.create_window(0, 0, window=self.projection_label, anchor="center")
         
+        # --- Sistema de Animação (com lista simplificada) ---
         self.animation = None
         animation_map = {
-            "Neve": SnowAnimation, "Partículas Flutuantes": FloatingParticlesAnimation,
-            "Estrelas Cintilantes": SparklingStarsAnimation, "Linhas de Conexão": ConnectingLinesAnimation
+            "Neve": SnowAnimation,
+            "Partículas Flutuantes": FloatingParticlesAnimation,
         }
         if animation_type in animation_map:
             animation_class = animation_map[animation_type]
-            # Agora passamos o ID do label para a classe de animação.
             self.animation = animation_class(self.main_canvas, self.label_window_id)
-        
-        print(f"--- PASSO 2: Objeto de animação criado: {self.animation} ---")
+            # --- PASSA A COR PARA A ANIMAÇÃO ---
+            self.animation.particle_color = animation_color
 
         # --- Vinculando atalhos e eventos ---
         self.bind("<Right>", lambda e: self.controller.next_slide())
@@ -119,14 +114,18 @@ class ProjectionWindow(ctk.CTkToplevel):
 
     def _on_resize(self, event=None):
         if not self.winfo_exists() or self.winfo_width() <= 1: return
-        width = self.main_canvas.winfo_width(); height = self.main_canvas.winfo_height()
+        
+        width = self.main_canvas.winfo_width()
+        height = self.main_canvas.winfo_height()
+
+        # Atualiza a posição do label de texto
         self.projection_label.configure(wraplength=width * 0.9)
-        if self.label_window_id is None:
-            # Adiciona a tag="text_window" ao criar a janela do label
-            self.label_window_id = self.main_canvas.create_window(
-                width / 2, height / 2, window=self.projection_label, anchor="center", tags="text_window"
-            )
-        else:
-            self.main_canvas.coords(self.label_window_id, width / 2, height / 2)
+        self.main_canvas.coords(self.label_window_id, width / 2, height / 2)
+        
+        # --- MUDANÇA CRÍTICA ---
+        # Informa a classe de animação sobre o novo tamanho,
+        # para que ela possa (re)criar suas partículas.
+        if self.animation:
+            self.animation.on_resize(width, height)
     
     def clear_content(self): self.update_content("")
