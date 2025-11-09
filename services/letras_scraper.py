@@ -10,10 +10,10 @@ except ImportError:
 class LetrasScraper:
     BASE_URL_SEARCH = "https://www.letras.mus.br"
     
-    # --- NOVAS LISTAS DE SELETORES ---
-    # Adicionamos seletores antigos e novos para aumentar a chance de acerto.
-    TITLE_SELECTORS = ['h1.textStyle-primary', 'div.cnt-head_title h1']
-    ARTIST_SELECTORS = ['h2.textStyle-secondary a', 'div.cnt-head_title h2 a']
+    # --- SELETORES ATUALIZADOS ---
+    # Colocamos os seletores mais recentes e específicos no início da lista.
+    TITLE_SELECTORS = ['div.title-content h1.textStyle-primary', 'h1.textStyle-primary', 'div.cnt-head_title h1']
+    ARTIST_SELECTORS = ['div.title-content h2.textStyle-secondary', 'div.song-title a', 'h2.textStyle-secondary a', 'div.cnt-head_title h2 a']
     LYRICS_CONTAINER_SELECTORS = ['div.lyric-original', 'div.cnt-letra', 'div.歌詞', 'div.lyric-cnt', 'div.js-lyric-cnt']
 
     def _find_element_text(self, soup, selectors):
@@ -37,7 +37,6 @@ class LetrasScraper:
         if not lyrics_container_element:
             return ""
 
-        # Remove elementos indesejados (como avisos de "contribuição")
         for unwanted in lyrics_container_element.select('.send-lyrics, .translate-lyrics'):
             unwanted.decompose()
 
@@ -71,11 +70,9 @@ class LetrasScraper:
             
             soup = BeautifulSoup(response.text, 'html.parser')
             
-            # Usa os novos métodos para encontrar o título e o artista
             title = self._find_element_text(soup, self.TITLE_SELECTORS) or "Título Desconhecido"
             artist = self._find_element_text(soup, self.ARTIST_SELECTORS) or "Artista Desconhecido"
 
-            # Usa o novo método para encontrar o container da letra
             lyrics_container = self._find_element_container(soup, self.LYRICS_CONTAINER_SELECTORS)
             
             if lyrics_container:
@@ -94,28 +91,5 @@ class LetrasScraper:
             print(f"ERRO: Scraper falhou na requisição para {song_url} - {req_err}")
             return None
         except Exception as e:
-            # Captura qualquer outro erro inesperado para não travar o app
             print(f"ERRO: Scraper teve um erro inesperado em {song_url} - {e}")
             return None
-
-    # O método search_music_url não precisa de grandes mudanças, mas podemos simplificá-lo
-    # e torná-lo um pouco mais genérico, já que fetch_lyrics_from_url é o principal.
-    # Por agora, vamos mantê-lo como está, pois a lógica principal foi robustecida.
-
-# O bloco de teste (if __name__ == '__main__') permanece o mesmo.
-if __name__ == '__main__':
-    scraper = LetrasScraper()
-    
-    direct_url = "https://www.letras.mus.br/fernandinho/pra-sempre/"
-    print(f"--- Testando Extração com URL Direta: {direct_url} ---")
-    music_data_direct = scraper.fetch_lyrics_from_url(direct_url)
-    
-    if music_data_direct:
-        print(f"\n--- Letra Importada (URL Direta) ---")
-        print(f"Título: {music_data_direct['title']}")
-        print(f"Artista: {music_data_direct['artist']}")
-        print(f"Letra (início):\n{music_data_direct['lyrics_full'][:200]}...")
-    else:
-        print(f"\nFalha ao importar letra da URL direta: {direct_url}")
-
-    print("-" * 30)
