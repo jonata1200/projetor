@@ -176,11 +176,23 @@ class PresentationController:
             messagebox.showerror("Erro", "Nenhum monitor foi detectado.", parent=self.master)
 
     def close_projection_window(self):
+        """
+        Fecha a janela de projeção, limpa a referência e atualiza o botão.
+        """
+        # Primeiro, verifica se a janela existe e a destrói
         if self.projection_window and self.projection_window.winfo_exists():
             self.projection_window.destroy()
+        
+        # --- A PARTE QUE FALTAVA ---
+        # Depois de destruir, limpa a referência e atualiza o estado do botão
+        self.projection_window = None
+        self.update_projection_buttons_state()
 
     def on_projection_window_closed(self):
-        """Este método agora é chamado diretamente pela ProjectionWindow antes de fechar."""
+        """
+        Callback executado pela ProjectionWindow quando ela é fechada.
+        Atualiza o estado interno e o texto do botão de projeção.
+        """
         self.projection_window = None
         self.update_projection_buttons_state()
 
