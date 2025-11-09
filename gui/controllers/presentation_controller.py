@@ -64,13 +64,29 @@ class PresentationController:
         
         self.update_controls_state()
 
-    def update_slide_view(self, force_projection_update=False):
+    def update_slide_view(self): # Removido o argumento 'force_projection_update'
         if 0 <= self.current_index < len(self.slides):
             slide_text = self.slides[self.current_index]
             self.ui["preview_label"].configure(text=slide_text)
             self.ui["indicator_label"].configure(text=f"{self.current_index + 1} / {len(self.slides)}")
             
             if self.projection_window and self.projection_window.winfo_exists():
+                # --- LÓGICA PRINCIPAL DA MUDANÇA ---
+                # 1. Determina qual seção de configuração usar
+                content_map = {"music": "Projection_Music", "bible": "Projection_Bible", "text": "Projection_Text"}
+                section_name = content_map.get(self.content_type, "Projection_Music") # Padrão para Música
+
+                # 2. Monta o dicionário de estilo
+                style_config = {
+                    'font_size': self.config_manager.get_int_setting(section_name, 'font_size', 60),
+                    'font_color': self.config_manager.get_setting(section_name, 'font_color', 'white'),
+                    'bg_color': self.config_manager.get_setting(section_name, 'bg_color', 'black'),
+                    'animation_type': self.config_manager.get_setting(section_name, 'animation_type', 'Nenhuma'),
+                    'animation_color': self.config_manager.get_setting(section_name, 'animation_color', 'white')
+                }
+
+                # 3. Aplica o estilo e depois o conteúdo
+                self.projection_window.apply_style(style_config)
                 self.projection_window.update_content(slide_text)
         else:
             self.clear_slide_view()

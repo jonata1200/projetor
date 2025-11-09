@@ -17,17 +17,28 @@ class ConfigManager:
         self.config.read(CONFIG_PATH)
 
     def _create_default_config(self):
-        """Cria um arquivo de configuração com valores padrão."""
-        # --- INÍCIO DA ADIÇÃO ---
-        self.config['Projection'] = {
-            'font_size': '60',
+        """Cria um arquivo de config com seções de estilo separadas."""
+        self.config['Projection_Music'] = {
+            'font_size': '70',
             'font_color': 'white',
             'bg_color': 'black',
             'animation_type': 'Neve',
+            'animation_color': '#DDDDDD'
+        }
+        self.config['Projection_Bible'] = {
+            'font_size': '60',
+            'font_color': '#FFFFE0', # Um branco amarelado
+            'bg_color': '#000033', # Um azul bem escuro
+            'animation_type': 'Nenhuma',
             'animation_color': 'white'
         }
-        # --- FIM DA ADIÇÃO ---
-
+        self.config['Projection_Text'] = {
+            'font_size': '65',
+            'font_color': 'white',
+            'bg_color': 'black',
+            'animation_type': 'Partículas Flutuantes',
+            'animation_color': '#AAAAAA'
+        }
         self.config['Display'] = {
             'projection_monitor_index': ''
         }

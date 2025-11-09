@@ -97,141 +97,105 @@ class AddEditSongDialog(ctk.CTkToplevel):
 # =============================================================================
 
 class SettingsDialog(ctk.CTkToplevel):
-    """
-    Janela de diálogo para configurar as opções de projeção.
-    """
     def __init__(self, master, config_manager):
         super().__init__(master)
-        self.master_app = master 
         self.config_manager = config_manager
         
         self.transient(master)
         self.grab_set()
-        self.title("Configurações")
-        self.geometry("550x640")
+        self.title("Configurações de Projeção")
+        self.geometry("600x550") # Janela um pouco maior
         self.resizable(False, False)
 
-        main_settings_frame = ctk.CTkFrame(self)
-        main_settings_frame.pack(pady=10, padx=10, fill="both", expand=True)
-
-        self._create_projection_settings_tab(main_settings_frame)
+        # Abas para cada tipo de conteúdo
+        self.tab_view = ctk.CTkTabview(self, width=580)
+        self.tab_view.pack(pady=10, padx=10, fill="both", expand=True)
         
+        tab_music = self.tab_view.add("Músicas")
+        tab_bible = self.tab_view.add("Bíblia")
+        tab_text = self.tab_view.add("Avisos / Texto")
+        
+        # Dicionários para guardar as variáveis de cada aba
+        self.style_vars = {}
+
+        # Cria a UI para cada aba
+        self._create_style_tab(tab_music, 'Projection_Music')
+        self._create_style_tab(tab_bible, 'Projection_Bible')
+        self._create_style_tab(tab_text, 'Projection_Text')
+        
+        # Botões Salvar/Cancelar
         button_frame = ctk.CTkFrame(self, fg_color="transparent")
         button_frame.pack(side="bottom", fill="x", pady=(5,15), padx=10)
         button_frame.grid_columnconfigure((0, 3), weight=1)
+        ctk.CTkButton(button_frame, text="Salvar", command=self.on_save, width=140).grid(row=0, column=1, padx=5)
+        ctk.CTkButton(button_frame, text="Cancelar", command=self.destroy, fg_color="gray50", hover_color="gray60", width=100).grid(row=0, column=2, padx=5)
 
-        self.save_button = ctk.CTkButton(button_frame, text="Salvar", command=self.on_save, width=140)
-        self.save_button.grid(row=0, column=1, padx=5, pady=5)
-
-        self.cancel_button = ctk.CTkButton(button_frame, text="Cancelar", command=self.destroy, fg_color="gray50", hover_color="gray60", width=100)
-        self.cancel_button.grid(row=0, column=2, padx=5, pady=5)
-
-        self.protocol("WM_DELETE_WINDOW", self.destroy) 
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
         self.after(50, self._center_window)
         self.focus_force()
 
-    def _create_projection_settings_tab(self, tab_frame):
-        tab_frame.grid_columnconfigure(1, weight=1)
-
-        # --- Monitor para Projeção ---
-        ctk.CTkLabel(tab_frame, text="Monitor para Projeção:").grid(row=0, column=0, padx=10, pady=(20,5), sticky="w")
-        self.monitor_display_list = ["Automático (Recomendado)"]
-        self.monitor_map_for_saving = {"Automático (Recomendado)": ""} 
-        try:
-            for i, m in enumerate(get_monitors()):
-                display_name = f"Monitor {i}: {m.name or f'({m.width}x{m.height})'}{' (Primário)' if m.is_primary else ''}"
-                self.monitor_display_list.append(display_name)
-                self.monitor_map_for_saving[display_name] = str(i)
-        except Exception as e:
-            print(f"Erro ao listar monitores: {e}")
-        self.selected_monitor_var = ctk.StringVar()
-        current_idx = self.config_manager.get_setting('Display', 'projection_monitor_index', '')
-        current_name = next((name for name, idx in self.monitor_map_for_saving.items() if idx == current_idx), "Automático (Recomendado)")
-        self.selected_monitor_var.set(current_name)
-        self.monitor_optionmenu = ctk.CTkOptionMenu(tab_frame, variable=self.selected_monitor_var, values=self.monitor_display_list, width=300, dynamic_resizing=False)
-        self.monitor_optionmenu.grid(row=0, column=1, padx=10, pady=(20,5), sticky="ew")
-        ctk.CTkLabel(tab_frame, text="Automático tentará o 2º monitor não primário,\n senão o primário.", font=ctk.CTkFont(size=10)).grid(row=1, column=1, padx=10, pady=(0,10), sticky="w")
+    def _create_style_tab(self, tab, section_name):
+        """Método auxiliar para criar a UI de estilo dentro de uma aba."""
+        tab.grid_columnconfigure(1, weight=1)
         
-        ctk.CTkFrame(tab_frame, height=2, fg_color="gray50").grid(row=2, column=0, columnspan=2, pady=15, sticky="ew")
-
-        # --- Opções de Aparência ---
-        ctk.CTkLabel(tab_frame, text="Tamanho da Fonte:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
-        self.font_size_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'font_size', '60'))
-        self.font_size_entry = ctk.CTkEntry(tab_frame, textvariable=self.font_size_var)
-        self.font_size_entry.grid(row=3, column=1, padx=10, pady=5, sticky="ew")
-
-        ctk.CTkLabel(tab_frame, text="Cor da Fonte:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
-        font_color_frame = ctk.CTkFrame(tab_frame, fg_color="transparent")
-        font_color_frame.grid(row=4, column=1, padx=10, pady=5, sticky="ew")
-        font_color_frame.grid_columnconfigure(0, weight=1)
-        self.font_color_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'font_color', 'white'))
-        self.font_color_entry = ctk.CTkEntry(font_color_frame, textvariable=self.font_color_var)
-        self.font_color_entry.grid(row=0, column=0, sticky="ew")
-        ctk.CTkButton(font_color_frame, text="Escolher...", width=80, command=lambda: self._pick_color(self.font_color_var)).grid(row=0, column=1, padx=(10,0))
+        vars_dict = {}
         
-        ctk.CTkLabel(tab_frame, text="Cor de Fundo:").grid(row=5, column=0, padx=10, pady=5, sticky="w")
-        bg_color_frame = ctk.CTkFrame(tab_frame, fg_color="transparent")
-        bg_color_frame.grid(row=5, column=1, padx=10, pady=5, sticky="ew")
-        bg_color_frame.grid_columnconfigure(0, weight=1)
-        self.bg_color_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'bg_color', 'black'))
-        self.bg_color_entry = ctk.CTkEntry(bg_color_frame, textvariable=self.bg_color_var)
-        self.bg_color_entry.grid(row=0, column=0, sticky="ew")
-        ctk.CTkButton(bg_color_frame, text="Escolher...", width=80, command=lambda: self._pick_color(self.bg_color_var)).grid(row=0, column=1, padx=(10,0))
-        
-        ctk.CTkLabel(tab_frame, text="Use o botão 'Escolher' ou digite um nome de cor\n em inglês (ex: white) ou código hex (ex: #FFFFFF).", font=ctk.CTkFont(size=10)).grid(row=6, column=1, padx=10, pady=(0,10), sticky="w")
+        # Tamanho da Fonte
+        ctk.CTkLabel(tab, text="Tamanho da Fonte:").grid(row=0, column=0, padx=10, pady=(20,5), sticky="w")
+        vars_dict['font_size'] = ctk.StringVar(value=self.config_manager.get_setting(section_name, 'font_size'))
+        ctk.CTkEntry(tab, textvariable=vars_dict['font_size']).grid(row=0, column=1, padx=10, pady=(20,5), sticky="ew")
 
-        ctk.CTkFrame(tab_frame, height=2, fg_color="gray50").grid(row=7, column=0, columnspan=2, pady=15, sticky="ew")
-
-        # --- Animação de Fundo ---
-        ctk.CTkLabel(tab_frame, text="Animação de Fundo:").grid(row=8, column=0, padx=10, pady=5, sticky="w")
-        self.animation_options = ["Nenhuma", "Neve", "Partículas Flutuantes"]
-        self.animation_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'animation_type', 'Neve'))
-        self.animation_optionmenu = ctk.CTkOptionMenu(tab_frame, variable=self.animation_var, values=self.animation_options)
-        self.animation_optionmenu.grid(row=8, column=1, padx=10, pady=5, sticky="ew")
+        # Cor da Fonte
+        ctk.CTkLabel(tab, text="Cor da Fonte:").grid(row=1, column=0, padx=10, pady=5, sticky="w")
+        frame_fc = ctk.CTkFrame(tab, fg_color="transparent"); frame_fc.grid(row=1, column=1, padx=10, pady=5, sticky="ew"); frame_fc.grid_columnconfigure(0, weight=1)
+        vars_dict['font_color'] = ctk.StringVar(value=self.config_manager.get_setting(section_name, 'font_color'))
+        ctk.CTkEntry(frame_fc, textvariable=vars_dict['font_color']).grid(row=0, column=0, sticky="ew")
+        ctk.CTkButton(frame_fc, text="Escolher...", width=80, command=lambda v=vars_dict['font_color']: self._pick_color(v)).grid(row=0, column=1, padx=(10,0))
         
-        ctk.CTkLabel(tab_frame, text="Cor da Animação:").grid(row=9, column=0, padx=10, pady=5, sticky="w")
-        anim_color_frame = ctk.CTkFrame(tab_frame, fg_color="transparent")
-        anim_color_frame.grid(row=9, column=1, padx=10, pady=5, sticky="ew")
-        anim_color_frame.grid_columnconfigure(0, weight=1)
-        self.anim_color_var = ctk.StringVar(value=self.config_manager.get_setting('Projection', 'animation_color', 'white'))
-        self.anim_color_entry = ctk.CTkEntry(anim_color_frame, textvariable=self.anim_color_var)
-        self.anim_color_entry.grid(row=0, column=0, sticky="ew")
-        ctk.CTkButton(anim_color_frame, text="Escolher...", width=80, command=lambda: self._pick_color(self.anim_color_var)).grid(row=0, column=1, padx=(10,0))
+        # Cor de Fundo
+        ctk.CTkLabel(tab, text="Cor de Fundo:").grid(row=2, column=0, padx=10, pady=5, sticky="w")
+        frame_bg = ctk.CTkFrame(tab, fg_color="transparent"); frame_bg.grid(row=2, column=1, padx=10, pady=5, sticky="ew"); frame_bg.grid_columnconfigure(0, weight=1)
+        vars_dict['bg_color'] = ctk.StringVar(value=self.config_manager.get_setting(section_name, 'bg_color'))
+        ctk.CTkEntry(frame_bg, textvariable=vars_dict['bg_color']).grid(row=0, column=0, sticky="ew")
+        ctk.CTkButton(frame_bg, text="Escolher...", width=80, command=lambda v=vars_dict['bg_color']: self._pick_color(v)).grid(row=0, column=1, padx=(10,0))
+        
+        # Animação de Fundo
+        ctk.CTkLabel(tab, text="Animação de Fundo:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
+        animation_options = ["Nenhuma", "Neve", "Partículas Flutuantes"]
+        vars_dict['animation_type'] = ctk.StringVar(value=self.config_manager.get_setting(section_name, 'animation_type'))
+        ctk.CTkOptionMenu(tab, variable=vars_dict['animation_type'], values=animation_options).grid(row=3, column=1, padx=10, pady=5, sticky="ew")
+        
+        # Cor da Animação
+        ctk.CTkLabel(tab, text="Cor da Animação:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
+        frame_ac = ctk.CTkFrame(tab, fg_color="transparent"); frame_ac.grid(row=4, column=1, padx=10, pady=5, sticky="ew"); frame_ac.grid_columnconfigure(0, weight=1)
+        vars_dict['animation_color'] = ctk.StringVar(value=self.config_manager.get_setting(section_name, 'animation_color'))
+        ctk.CTkEntry(frame_ac, textvariable=vars_dict['animation_color']).grid(row=0, column=0, sticky="ew")
+        ctk.CTkButton(frame_ac, text="Escolher...", width=80, command=lambda v=vars_dict['animation_color']: self._pick_color(v)).grid(row=0, column=1, padx=(10,0))
+
+        self.style_vars[section_name] = vars_dict
 
     def on_save(self):
-        # Monitor
-        monitor_index_to_save = self.monitor_map_for_saving.get(self.selected_monitor_var.get(), "") 
-        self.config_manager.set_setting('Display', 'projection_monitor_index', monitor_index_to_save)
+        for section_name, vars_dict in self.style_vars.items():
+            font_size_val = vars_dict['font_size'].get()
+            if not (font_size_val.isdigit() and int(font_size_val) > 0):
+                messagebox.showwarning("Valor Inválido", f"O tamanho da fonte na aba '{section_name}' deve ser um número positivo.", parent=self)
+                return
+            
+            for key, var in vars_dict.items():
+                self.config_manager.set_setting(section_name, key, var.get())
         
-        # Fonte
-        font_size_val = self.font_size_entry.get()
-        if not (font_size_val.isdigit() and int(font_size_val) > 0):
-            messagebox.showwarning("Valor Inválido", "O tamanho da fonte deve ser um número inteiro positivo.", parent=self)
-            self.font_size_entry.focus(); return
-        self.config_manager.set_setting('Projection', 'font_size', font_size_val)
-        
-        # Cores e Animação
-        self.config_manager.set_setting('Projection', 'font_color', self.font_color_entry.get().strip())
-        self.config_manager.set_setting('Projection', 'bg_color', self.bg_color_entry.get().strip())
-        self.config_manager.set_setting('Projection', 'animation_type', self.animation_var.get())
-        self.config_manager.set_setting('Projection', 'animation_color', self.anim_color_var.get().strip())
-        
-        messagebox.showinfo("Configurações Salvas", 
-                            "As configurações foram salvas.\n\n"
-                            "As novas configurações serão aplicadas na próxima vez\n"
-                            "que a janela de projeção for aberta.",
-                            parent=self)
+        messagebox.showinfo("Configurações Salvas", "As configurações de estilo foram salvas.", parent=self)
         self.destroy()
 
     def _pick_color(self, string_var_to_update):
-        """Abre o seletor de cores e atualiza a StringVar com o resultado."""
+        # (Este método permanece o mesmo)
         color_info = askcolor(parent=self)
-        if color_info and color_info[1]:
-            string_var_to_update.set(color_info[1])
+        if color_info and color_info[1]: string_var_to_update.set(color_info[1])
 
     def _center_window(self):
-        """Centraliza a janela de diálogo na janela mestre."""
-        self.after(20, self._do_center) 
+        # (Este método permanece o mesmo)
+        try: self.after(20, self._do_center)
+        except Exception: pass 
 
     def _do_center(self):
         try:
