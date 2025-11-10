@@ -10,15 +10,18 @@ class BibleController:
         
         self.versions_data = []
         self.books_data = []
+        # Armazena os versículos do capítulo atualmente selecionado para evitar chamadas repetidas à API
         self.current_chapter_verses = []
 
         self._setup_callbacks()
+        # Inicia o carregamento das versões da Bíblia em uma thread separada para não travar a UI
         threading.Thread(target=self.populate_versions, daemon=True).start()
 
     def _setup_callbacks(self):
         self.view["version_menu"].configure(command=self.on_version_selected)
         self.view["book_menu"].configure(command=self.on_book_selected)
         self.view["chapter_menu"].configure(command=self.on_chapter_selected)
+        # O seletor de versículo não precisa de um 'command', pois sua seleção é lida no momento do clique nos botões.
         self.view["btn_load"].configure(command=self.load_selected_content)
         self.view["btn_add_to_playlist"].configure(command=self.add_selected_content_to_playlist)
 
@@ -38,6 +41,7 @@ class BibleController:
                 self.on_version_selected(version_names[0])
 
     def on_version_selected(self, selected_version_name):
+        # Quando uma versão é selecionada, o próximo passo é popular os livros
         self.populate_books()
 
     def populate_books(self):
@@ -64,37 +68,39 @@ class BibleController:
                 self.on_chapter_selected(chapter_values[0])
     
     def on_chapter_selected(self, chapter_num):
+        # Ação ao selecionar um capítulo: buscar os versículos para popular o menu de versículos
         self.view["verse_menu"].configure(state="disabled")
         self.view["verse_var"].set("Carregando...")
         version_abbrev = self._get_selected_abbrev('version')
         book_abbrev = self._get_selected_abbrev('book')
         if not all([version_abbrev, book_abbrev, chapter_num]): return
+        
         args = (version_abbrev, book_abbrev, int(chapter_num))
         threading.Thread(target=self._threaded_fetch_verses_for_menu, args=args, daemon=True).start()
 
     def _threaded_fetch_verses_for_menu(self, version_abbrev, book_abbrev, chapter_num):
-        self.current_chapter_verses = self.manager.api_client.get_chapter_verses(version_abbrev, book_abbrev, chapter_num)
-        self.master.after(0, self._populate_verse_menu)
+        # Busca os dados em uma thread
+        verses_data = self.manager.api_client.get_chapter_verses(version_abbrev, book_abbrev, chapter_num)
+        # Atualiza a UI na thread principal
+        self.master.after(0, self._populate_verse_menu, verses_data)
 
-    def _populate_verse_menu(self):
-        """Atualiza a UI, removendo a opção 'Todos os Versículos'."""
+    def _populate_verse_menu(self, verses_data):
+        self.current_chapter_verses = verses_data or [] # Armazena os versículos carregados
         verse_menu = self.view["verse_menu"]
         verse_var = self.view["verse_var"]
         
         if self.current_chapter_verses:
-            # --- MUDANÇA AQUI ---
-            # A lista agora contém apenas os números dos versículos.
             verse_numbers = [str(v['number']) for v in self.current_chapter_verses]
             verse_menu.configure(values=verse_numbers, state="normal")
-            verse_var.set("1") # Continua definindo o versículo 1 como padrão.
+            verse_var.set("1") # Define o versículo 1 como padrão
         else:
             verse_menu.configure(values=["Nenhum"], state="disabled")
             verse_var.set("Nenhum")
 
-    # --- MÉTODO _get_selected_content TOTALMENTE REESCRITO ---
+    # --- MÉTODO CENTRAL DA MELHORIA ---
     def _get_selected_content(self):
         """
-        Sempre monta a lista de slides para o CAPÍTULO INTEIRO.
+        Monta a lista de slides para o CAPÍTULO INTEIRO.
         Retorna os slides, o título do capítulo, e o ÍNDICE INICIAL do versículo selecionado.
         """
         book_name = self.view["book_var"].get()
@@ -108,41 +114,44 @@ class BibleController:
         if not self.current_chapter_verses:
             return None, None, 0
 
-        # Monta a lista de slides para o capítulo inteiro
+        # 1. Monta a lista de slides para o capítulo inteiro
         for verse in self.current_chapter_verses:
             slides.append(f"{book_name} {chapter_num}:{verse['number']}\n{verse['text']}")
 
-        # Encontra o índice inicial do versículo selecionado
+        # 2. Encontra o índice inicial do versículo selecionado
         if selected_verse_str.isdigit():
             try:
-                # O índice é o número do versículo - 1 (pois listas começam em 0)
+                # O índice da lista é o número do versículo - 1
                 verse_num = int(selected_verse_str)
                 start_index = verse_num - 1
             except ValueError:
                 start_index = 0
         
-        # Garante que o índice seja válido
+        # 3. Garante que o índice seja válido
         if not (0 <= start_index < len(slides)):
             start_index = 0
             
         return slides, title, start_index
 
-    # --- Métodos de Ação Atualizados ---
     def load_selected_content(self):
-        """Carrega o capítulo inteiro, iniciando no versículo selecionado."""
+        """
+        Carrega o capítulo inteiro na pré-visualização, mas inicia a projeção
+        a partir do versículo que o usuário selecionou.
+        """
         slides, _, start_index = self._get_selected_content()
         if slides:
-            # Passa o novo parâmetro 'start_index' para o PresentationController
+            # A mágica acontece aqui: passamos o 'start_index' para o PresentationController
             self.on_content_selected("bible", slides, start_index=start_index)
 
     def add_selected_content_to_playlist(self):
-        """Adiciona o capítulo inteiro à Ordem de Culto."""
-        # A playlist sempre recebe o capítulo inteiro. O start_index não é necessário aqui.
-        slides, title, _ = self._get_selected_content()
+        """
+        Adiciona o capítulo inteiro à Ordem de Culto, ignorando qual
+        versículo individual foi selecionado.
+        """
+        slides, title, _ = self._get_selected_content() # O start_index é ignorado aqui
         if slides and title:
             self.playlist_controller.add_bible_item(slides, title)
 
-    # --- Método Auxiliar ---
     def _get_selected_abbrev(self, item_type):
         """Pega a abreviação da versão ou livro selecionado."""
         if item_type == 'version':
@@ -157,6 +166,7 @@ class BibleController:
             key = 'abbrev'
             data = next((b for b in data_list if b['name'] == name), None)
             if data:
-                abbrev_obj = data[key]
-                return abbrev_obj.get('pt', '') if isinstance(abbrev_obj, dict) else abbrev_obj
+                abbrev_obj = data.get(key)
+                # Lida com o formato de abreviação que pode ser um dict ou uma string
+                return abbrev_obj.get('pt', abbrev_obj) if isinstance(abbrev_obj, dict) else abbrev_obj
         return None

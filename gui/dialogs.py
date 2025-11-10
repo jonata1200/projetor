@@ -1,5 +1,4 @@
 import customtkinter as ctk
-from screeninfo import get_monitors
 from tkinter import messagebox
 from tkinter.colorchooser import askcolor
 
@@ -175,17 +174,37 @@ class SettingsDialog(ctk.CTkToplevel):
         self.style_vars[section_name] = vars_dict
 
     def on_save(self):
+        # A lógica de salvar é movida para uma função separada
+        # para que possamos mostrar a mensagem de sucesso depois.
+        success = self._save_all_settings()
+        
+        if success:
+            messagebox.showinfo("Configurações Salvas", 
+                                "As configurações de estilo foram salvas com sucesso.", 
+                                parent=self)
+            self.destroy()
+        else:
+            # A mensagem de erro agora é mostrada ao usuário.
+            messagebox.showerror("Erro ao Salvar", 
+                                 "Não foi possível salvar as configurações no arquivo 'config.ini'.\n"
+                                 "Verifique as permissões de escrita na pasta do programa.", 
+                                 parent=self)
+
+    def _save_all_settings(self):
+        """Tenta salvar todas as configurações e retorna True/False."""
         for section_name, vars_dict in self.style_vars.items():
             font_size_val = vars_dict['font_size'].get()
             if not (font_size_val.isdigit() and int(font_size_val) > 0):
-                messagebox.showwarning("Valor Inválido", f"O tamanho da fonte na aba '{section_name}' deve ser um número positivo.", parent=self)
-                return
-            
+                messagebox.showwarning("Valor Inválido",
+                                       f"O tamanho da fonte na aba '{section_name}' deve ser um número positivo.",
+                                       parent=self)
+                return False # Impede o salvamento se a validação falhar
+
             for key, var in vars_dict.items():
-                self.config_manager.set_setting(section_name, key, var.get())
-        
-        messagebox.showinfo("Configurações Salvas", "As configurações de estilo foram salvas.", parent=self)
-        self.destroy()
+                # Se qualquer chamada ao set_setting falhar, a função inteira retorna False.
+                if not self.config_manager.set_setting(section_name, key, var.get()):
+                    return False
+        return True # Se todas foram salvas com sucesso, retorna True.
 
     def _pick_color(self, string_var_to_update):
         # (Este método permanece o mesmo)

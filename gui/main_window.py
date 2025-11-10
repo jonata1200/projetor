@@ -1,7 +1,8 @@
 import customtkinter as ctk
 from core.music_manager import MusicManager
 from core.bible_manager import BibleManager
-from services.letras_scraper import LetrasScraper
+# --- IMPORTAÇÃO MODIFICADA ---
+from core.services.letras_scraper import LetrasScraper
 from core.config_manager import ConfigManager
 from .controllers.presentation_controller import PresentationController
 from .controllers.music_controller import MusicController

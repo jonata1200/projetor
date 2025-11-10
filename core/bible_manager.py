@@ -1,12 +1,8 @@
 import json
 import os
-from services.bible_api_client import BibleAPIClient
-
-# --- NOVAS CONSTANTES ---
-# Define o caminho base do projeto para encontrar a pasta 'data'
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-# Define o caminho para o nosso novo arquivo de cache
-BIBLE_BOOKS_CACHE_PATH = os.path.join(BASE_DIR, 'data', 'bible_books_cache.json')
+# --- IMPORTAÇÕES MODIFICADAS ---
+from .services.bible_api_client import BibleAPIClient
+from core.paths import BIBLE_BOOKS_CACHE_PATH
 
 class BibleManager:
     def __init__(self):

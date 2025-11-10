@@ -1,9 +1,7 @@
 import configparser
 import os
-
-CONFIG_FILE = 'config.ini'
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CONFIG_PATH = os.path.join(BASE_DIR, CONFIG_FILE)
+# --- IMPORTAÇÃO MODIFICADA ---
+from core.paths import CONFIG_PATH
 
 class ConfigManager:
     def __init__(self):
@@ -14,7 +12,11 @@ class ConfigManager:
         """Carrega as configurações do arquivo. Cria o arquivo com padrões se não existir."""
         if not os.path.exists(CONFIG_PATH):
             self._create_default_config()
-        self.config.read(CONFIG_PATH)
+            # Precisamos salvar o arquivo recém-criado antes de lê-lo
+            self._save_config_file()
+        
+        # O argumento encoding é importante para consistência
+        self.config.read(CONFIG_PATH, encoding='utf-8')
 
     def _create_default_config(self):
         """Cria um arquivo de config com seções de estilo separadas."""
@@ -42,15 +44,18 @@ class ConfigManager:
         self.config['Display'] = {
             'projection_monitor_index': ''
         }
+        # Salva o arquivo após criar a configuração padrão
+        self._save_config_file()
 
     def get_setting(self, section, key, fallback=None):
         """Obtém uma configuração. Retorna fallback se não encontrada."""
-        try:
-            return self.config.get(section, key)
-        except (configparser.NoSectionError, configparser.NoOptionError):
-            return fallback
+        # Adicionado encoding='utf-8' para consistência
+        self.config.read(CONFIG_PATH, encoding='utf-8')
+        return self.config.get(section, key, fallback=fallback)
 
     def get_int_setting(self, section, key, fallback=None):
+        # Adicionado encoding='utf-8' para consistência
+        self.config.read(CONFIG_PATH, encoding='utf-8')
         try:
             return self.config.getint(section, key)
         except (configparser.NoSectionError, configparser.NoOptionError, ValueError):
@@ -61,15 +66,17 @@ class ConfigManager:
         if not self.config.has_section(section):
             self.config.add_section(section)
         self.config.set(section, key, str(value))
-        self._save_config_file()
+        return self._save_config_file() # Adiciona o 'return' aqui
 
     def _save_config_file(self):
         """Salva o objeto de configuração atual no arquivo."""
         try:
-            with open(CONFIG_PATH, 'w') as configfile:
+            with open(CONFIG_PATH, 'w', encoding='utf-8') as configfile:
                 self.config.write(configfile)
+            return True # Retorna True em caso de sucesso
         except IOError as e:
             print(f"Erro ao salvar arquivo de configuração: {e}")
+            return False # Retorna False em caso de erro
 
 if __name__ == '__main__':
     cm = ConfigManager()

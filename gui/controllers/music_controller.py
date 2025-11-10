@@ -101,7 +101,6 @@ class MusicController:
             self.no_results_label.pack(pady=20, padx=10)
 
     def on_music_select(self, music_id):
-        # (Este método permanece o mesmo)
         if self.current_song_id and self.current_song_id in self.music_widgets:
             self.music_widgets[self.current_song_id]['widget'].configure(fg_color=self.transparent_color)
         
@@ -121,20 +120,22 @@ class MusicController:
         self.view["btn_add_to_playlist"].configure(state=state)
 
     def show_add_dialog(self):
-        # Modificado para reconstruir a lista após a ação
         dialog = AddEditSongDialog(self.master, dialog_title="Adicionar Nova Música")
         song_data = dialog.get_data()
         if song_data:
             added = self.manager.add_music(song_data["title"], song_data["artist"], song_data["lyrics_full"])
             if added:
                 messagebox.showinfo("Sucesso", "Música adicionada!", parent=self.master)
-                self.build_music_list() # Reconstrói a lista de widgets
-                self.filter_music_list() # Aplica o filtro atual
+                self.build_music_list()
+                self.filter_music_list()
             else:
-                messagebox.showerror("Erro", "Falha ao adicionar música.", parent=self.master)
+                # --- FEEDBACK DE ERRO ---
+                messagebox.showerror("Erro ao Salvar",
+                                     "Não foi possível salvar a nova música no arquivo 'music_db.json'.\n"
+                                     "Verifique as permissões de escrita na pasta do programa.", 
+                                     parent=self.master)
 
     def show_edit_dialog(self):
-        # Modificado para reconstruir a lista após a ação
         if not self.current_song_id: return
         song = self.manager.get_music_by_id(self.current_song_id)
         if not song: return messagebox.showerror("Erro", "Música não encontrada.", parent=self.master)
@@ -145,14 +146,17 @@ class MusicController:
             success = self.manager.edit_music(self.current_song_id, updated_data["title"], updated_data["artist"], updated_data["lyrics_full"])
             if success:
                 messagebox.showinfo("Sucesso", "Música atualizada!", parent=self.master)
-                self.build_music_list() # Reconstrói a lista de widgets
-                self.filter_music_list() # Aplica o filtro atual
-                self.on_music_select(self.current_song_id) # Re-seleciona a música
+                self.build_music_list()
+                self.filter_music_list()
+                self.on_music_select(self.current_song_id)
             else:
-                messagebox.showerror("Erro", "Falha ao atualizar música.", parent=self.master)
+                # --- FEEDBACK DE ERRO ---
+                messagebox.showerror("Erro ao Salvar", 
+                                     "Não foi possível salvar as alterações no arquivo 'music_db.json'.\n"
+                                     "Verifique as permissões de escrita.", 
+                                     parent=self.master)
 
     def show_import_dialog(self):
-        # (Este método não precisa ser alterado, apenas a sua função de callback)
         dialog = ctk.CTkInputDialog(text="Digite a URL completa da página da música no Letras.mus.br:", title="Importar Música por URL")
         song_url = dialog.get_input()
         if not song_url or not song_url.strip(): return
@@ -166,7 +170,6 @@ class MusicController:
         self.view["btn_import"].configure(state="disabled", text="Importando...")
 
     def _threaded_import(self, song_url):
-        # (Este método permanece o mesmo)
         try:
             music_data = self.scraper.fetch_lyrics_from_url(song_url)
             self.master.after(0, self._on_import_finished, music_data)
@@ -174,27 +177,31 @@ class MusicController:
             self.master.after(0, self._on_import_finished, None, e)
 
     def _on_import_finished(self, music_data, error=None):
-        # Modificado para reconstruir a lista após a ação
         self.view["btn_import"].configure(state="normal", text="Importar (URL)")
         if error:
-            messagebox.showerror("Erro Inesperado", f"Ocorreu um erro durante a importação: {error}", parent=self.master)
+            # --- FEEDBACK DE ERRO DE REDE ---
+            messagebox.showerror("Erro de Importação", f"Ocorreu um erro de rede ou na página da web:\n{error}", parent=self.master)
             return
         if music_data and music_data.get("lyrics_full"):
             title, artist = music_data.get("title", "Título Desconhecido"), music_data.get("artist", "Artista Desconhecido")
             if self.manager.is_duplicate(title, artist):
-                if not messagebox.askyesno("Música Existente", f"A música '{title}' por '{artist}' já parece existir. Deseja importá-la mesmo assim?"): return
+                if not messagebox.askyesno("Música Existente", f"A música '{title}' por '{artist}' já parece existir. Deseja importá-la mesmo assim?", parent=self.master): return
+            
             added_song = self.manager.add_music(title, artist, music_data["lyrics_full"])
             if added_song:
                 messagebox.showinfo("Importação Concluída", f"Música '{added_song['title']}' importada com sucesso!", parent=self.master)
-                self.build_music_list() # Reconstrói a lista de widgets
-                self.filter_music_list() # Aplica o filtro atual
+                self.build_music_list()
+                self.filter_music_list()
             else:
-                messagebox.showerror("Erro de Importação", "Não foi possível salvar a música no banco de dados.", parent=self.master)
+                # --- FEEDBACK DE ERRO AO SALVAR A MÚSICA IMPORTADA ---
+                messagebox.showerror("Erro ao Salvar", 
+                                     "A música foi importada, mas não foi possível salvá-la no arquivo 'music_db.json'.\n"
+                                     "Verifique as permissões de escrita.", 
+                                     parent=self.master)
         else:
-            messagebox.showwarning("Falha na Importação", "Não foi possível encontrar a letra na URL fornecida.", parent=self.master)
+            messagebox.showwarning("Falha na Importação", "Não foi possível encontrar a letra na URL fornecida. O site pode ter atualizado sua estrutura.", parent=self.master)
 
     def confirm_delete(self):
-        # Modificado para reconstruir a lista após a ação
         if not self.current_song_id: return
         song = self.manager.get_music_by_id(self.current_song_id)
         if not song: return
@@ -202,12 +209,15 @@ class MusicController:
             if self.manager.delete_music(self.current_song_id):
                 messagebox.showinfo("Sucesso", "Música excluída.", parent=self.master)
                 self.on_content_selected("music", [], None)
-                self.build_music_list() # Reconstrói a lista de widgets
-                self.filter_music_list() # Aplica o filtro atual
+                self.build_music_list()
+                self.filter_music_list()
             else:
-                messagebox.showerror("Erro", "Falha ao excluir a música.", parent=self.master)
+                # --- FEEDBACK DE ERRO ---
+                messagebox.showerror("Erro ao Excluir", 
+                                     "Não foi possível salvar as alterações no arquivo 'music_db.json' após a exclusão.\n"
+                                     "A música não foi removida. Verifique as permissões de escrita.", 
+                                     parent=self.master)
     
     def add_to_playlist(self):
-        # (Este método permanece o mesmo)
         if self.current_song_id:
             self.playlist_controller.add_music_item(self.current_song_id, self.manager)

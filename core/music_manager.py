@@ -1,9 +1,8 @@
 import json
 import os
 import uuid
-
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_DIR, 'data', 'music_db.json')
+# --- IMPORTAÇÃO MODIFICADA ---
+from core.paths import MUSIC_DB_PATH
 
 class MusicManager:
     def __init__(self):
@@ -18,12 +17,12 @@ class MusicManager:
 
     def load_music_db(self):
         try:
-            if os.path.exists(DB_PATH):
-                with open(DB_PATH, 'r', encoding='utf-8') as f:
+            if os.path.exists(MUSIC_DB_PATH):
+                with open(MUSIC_DB_PATH, 'r', encoding='utf-8') as f:
                     self.music_database = json.load(f)
                     for music in self.music_database:
                         if 'slides' not in music or not music['slides']:
-                            music['slides'] = self._generate_slides_from_lyrics(music.get('lyrics_full', ''))
+                            music.get('lyrics_full', '')
             else:
                 self.music_database = []
         except (json.JSONDecodeError, IOError) as e:
@@ -33,8 +32,9 @@ class MusicManager:
 
     def save_music_db(self):
         try:
-            os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-            with open(DB_PATH, 'w', encoding='utf-8') as f:
+            # Garante que o diretório 'data' exista
+            os.makedirs(os.path.dirname(MUSIC_DB_PATH), exist_ok=True)
+            with open(MUSIC_DB_PATH, 'w', encoding='utf-8') as f:
                 json.dump(self.music_database, f, ensure_ascii=False, indent=2)
             return True
         except IOError as e:
@@ -87,6 +87,7 @@ class MusicManager:
         if self.save_music_db():
             return new_music
         else:
+            # Se salvar falhar, remove a música que foi adicionada apenas na memória.
             self.music_database.pop() 
             return None
 
@@ -106,12 +107,18 @@ class MusicManager:
     def delete_music(self, song_id):
         if not song_id:
             return False
+        
+        # Faz um backup do estado atual caso o salvamento falhe
+        original_database = [dict(d) for d in self.music_database]
+        
         original_length = len(self.music_database)
         self.music_database = [music for music in self.music_database if music.get('id') != song_id]
+        
         if len(self.music_database) < original_length:
             if self.save_music_db():
                 return True
             else:
-                self.load_music_db()
+                # Se salvar falhou, restaura o banco de dados em memória para o estado anterior.
+                self.music_database = original_database
                 return False
-        return False
+        return False # Retorna False se o song_id não foi encontrado
