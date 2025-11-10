@@ -110,7 +110,6 @@ class PresentationController:
         has_slides = bool(self.slides)
         self.ui["btn_prev"].configure(state="normal" if has_slides else "disabled")
         self.ui["btn_next"].configure(state="normal" if has_slides else "disabled")
-        self.ui["btn_show_all"].configure(state="normal" if has_slides else "disabled")
 
     def handle_projection_button(self):
         """
