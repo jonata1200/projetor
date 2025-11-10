@@ -3,10 +3,10 @@ from tkinter import messagebox
 from tkinter.colorchooser import askcolor
 
 # =============================================================================
-# Diálogo para Adicionar/Editar Músicas
+# Diálogo para Adicionar/Editar Músicas (Sem alterações aqui)
 # =============================================================================
-
 class AddEditSongDialog(ctk.CTkToplevel):
+    # ... (toda a classe AddEditSongDialog permanece igual)
     """
     Janela de diálogo para criar uma nova música ou editar uma existente.
     """
@@ -92,10 +92,10 @@ class AddEditSongDialog(ctk.CTkToplevel):
 
 
 # =============================================================================
-# Diálogo de Configurações
+# Diálogo de Configurações (Sem alterações aqui)
 # =============================================================================
-
 class SettingsDialog(ctk.CTkToplevel):
+    # ... (toda a classe SettingsDialog permanece igual)
     def __init__(self, master, config_manager):
         super().__init__(master)
         self.config_manager = config_manager
@@ -175,7 +175,7 @@ class SettingsDialog(ctk.CTkToplevel):
 
     def on_save(self):
         # A lógica de salvar é movida para uma função separada
-        # para que possamos mostrar a mensagem de sucesso depois.
+        # para que possamos mostrar la mensagem de sucesso depois.
         success = self._save_all_settings()
         
         if success:
@@ -206,6 +206,7 @@ class SettingsDialog(ctk.CTkToplevel):
                     return False
         return True # Se todas foram salvas com sucesso, retorna True.
 
+
     def _pick_color(self, string_var_to_update):
         # (Este método permanece o mesmo)
         color_info = askcolor(parent=self)
@@ -230,7 +231,7 @@ class SettingsDialog(ctk.CTkToplevel):
 
 
 # =============================================================================
-# Diálogo de Ajuda de Atalhos
+# Diálogo de Ajuda de Atalhos (COM AS ALTERAÇÕES)
 # =============================================================================
 
 class ShortcutsHelpDialog(ctk.CTkToplevel):
@@ -243,19 +244,23 @@ class ShortcutsHelpDialog(ctk.CTkToplevel):
         self.transient(master)
         self.grab_set()
         self.title("Atalhos do Teclado")
-        self.geometry("400x240")
+        self.geometry("450x240") # Aumentei um pouco a largura para os emojis
         self.resizable(False, False)
 
+        # --- ALTERAÇÃO 1: EMOJIS ADICIONADOS À LISTA ---
+        # Adicionei os emojis e mantive o texto para clareza.
         shortcuts = [
-            ("Seta Direita", "Avançar para o Próximo Slide"),
-            ("Seta Esquerda", "Voltar para o Slide Anterior"),
+            ("➡️ (Seta Direita)", "Avançar para o Próximo Slide"),
+            ("⬅️ (Seta Esquerda)", "Voltar para o Slide Anterior"),
             ("C", "Limpar Conteúdo da Projeção"),
             ("Esc", "Fechar Janela de Projeção")
         ]
 
         main_frame = ctk.CTkFrame(self)
         main_frame.pack(fill="both", expand=True, padx=15, pady=15)
-        main_frame.grid_columnconfigure(1, weight=1)
+        # Ajustei o peso da coluna para dar mais espaço à descrição
+        main_frame.grid_columnconfigure(0, weight=1)
+        main_frame.grid_columnconfigure(1, weight=2)
 
         header_font = ctk.CTkFont(weight="bold")
         ctk.CTkLabel(main_frame, text="Atalho", font=header_font).grid(row=0, column=0, sticky="w", padx=(0, 20))
@@ -271,4 +276,28 @@ class ShortcutsHelpDialog(ctk.CTkToplevel):
         close_button = ctk.CTkButton(self, text="Fechar", command=self.destroy)
         close_button.pack(pady=(0, 15))
         
-        self.after(50, self.lift)
+        # --- ALTERAÇÃO 2: LÓGICA DE CENTRALIZAÇÃO ADICIONADA ---
+        self.protocol("WM_DELETE_WINDOW", self.destroy)
+        self.after(50, self._center_window) # Chama a centralização após a janela ser desenhada
+        self.focus_force()
+
+    def _center_window(self):
+        """Centraliza a janela de diálogo na janela mestre."""
+        try:
+            self.update_idletasks() # Garante que as dimensões da janela estejam atualizadas
+            master_x = self.master.winfo_x()
+            master_y = self.master.winfo_y()
+            master_w = self.master.winfo_width()
+            master_h = self.master.winfo_height()
+            
+            dialog_w = self.winfo_width()
+            dialog_h = self.winfo_height()
+            
+            # Calcula a posição x, y para a janela de diálogo
+            x = master_x + (master_w - dialog_w) // 2
+            y = master_y + (master_h - dialog_h) // 2
+            
+            self.geometry(f"+{x}+{y}")
+        except Exception:
+            # Se algo der errado (ex: janela principal minimizada), apenas ignora.
+            pass
