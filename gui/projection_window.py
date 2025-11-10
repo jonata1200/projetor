@@ -22,6 +22,10 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.overrideredirect(True)
         self.geometry(f"{target_monitor_geometry['width']}x{target_monitor_geometry['height']}+{target_monitor_geometry['x']}+{target_monitor_geometry['y']}")
         
+        # --- ALTERAÇÃO PRINCIPAL AQUI ---
+        # Esta linha instrui o sistema operacional a manter esta janela sempre na frente.
+        self.attributes("-topmost", True)
+        
         self.main_canvas = tk.Canvas(self, bg=self.bg_color, highlightthickness=0)
         self.main_canvas.pack(fill="both", expand=True)
         
@@ -42,6 +46,8 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.after(50, self._initialize_layout)
         self.lift()
         self.focus_force()
+
+    # ... (O restante do arquivo permanece exatamente o mesmo, não precisa ser alterado) ...
 
     def apply_style(self, style_config):
         animation_map = {
@@ -91,7 +97,6 @@ class ProjectionWindow(ctk.CTkToplevel):
         if self.controller: self.controller.on_projection_window_closed()
         if self.winfo_exists(): self.destroy()
 
-    # --- INÍCIO DA ADIÇÃO DOS MÉTODOS ---
     def start_animation(self):
         """Inicia a animação de fundo, se houver uma."""
         if self.animation and not self.animation.is_running:
@@ -101,7 +106,6 @@ class ProjectionWindow(ctk.CTkToplevel):
         """Para a animação de fundo, se houver uma."""
         if self.animation and self.animation.is_running:
             self.animation.stop()
-    # --- FIM DA ADIÇÃO DOS MÉTODOS ---
 
     def update_content(self, text):
         if self.is_fading and self._after_id_fade: self.after_cancel(self._after_id_fade)
