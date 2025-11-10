@@ -1,6 +1,7 @@
 from tkinter import messagebox
 from screeninfo import get_monitors
 from gui.projection_window import ProjectionWindow
+import customtkinter as ctk
 
 class PresentationController:
     def __init__(self, master, ui_elements, config_manager):
@@ -14,7 +15,13 @@ class PresentationController:
         self.content_type = None
         self.content_id = None
 
+        # Cores padrão para o estado "limpo" da pré-visualização
+        self.default_preview_bg = self.ui["preview_frame"].cget("fg_color")
+        self.default_preview_fg = ctk.ThemeManager.theme["CTkLabel"]["text_color"]
+
         self._setup_callbacks()
+        # Inicializa a pré-visualização com o estilo padrão
+        self._update_preview_style()
 
     def _setup_callbacks(self):
         self.ui["btn_prev"].configure(command=self.prev_slide)
@@ -23,10 +30,6 @@ class PresentationController:
         self.ui["btn_clear"].configure(command=self.clear_projection_content)
 
     def load_content(self, content_type, slides, content_id=None, start_index=0):
-        """
-        Carrega novo conteúdo e aplica o estilo correspondente.
-        """
-        # Verifica se o TIPO de conteúdo mudou para decidir se um novo estilo deve ser aplicado.
         apply_new_style = (self.content_type != content_type)
         self.content_type = content_type
         
@@ -36,12 +39,10 @@ class PresentationController:
         if self.slides:
             self.current_index = start_index if 0 <= start_index < len(self.slides) else 0
             
-            # Se a janela de projeção estiver aberta e o tipo de conteúdo mudou, aplica o novo estilo.
             if self.projection_window and self.projection_window.winfo_exists() and apply_new_style:
-                self._apply_style_for_current_content()
+                self._apply_style_to_projection_window()
             
             self.update_slide_view()
-            # Atualiza a grade de miniaturas na janela principal
             if hasattr(self.master, 'build_all_slides_grid'):
                 self.master.build_all_slides_grid(self.slides, self.current_index)
         else:
@@ -51,24 +52,52 @@ class PresentationController:
                 self.master.build_all_slides_grid([], -1)
         
         self.update_controls_state()
-
-    def _apply_style_for_current_content(self):
-        """Método auxiliar para pegar a configuração e aplicá-la na janela de projeção."""
+        self._update_preview_style()
+    
+    def _apply_style_to_projection_window(self):
         if not self.projection_window or not self.projection_window.winfo_exists():
             return
+        
+        style_config = self._get_style_config_for_current_content()
+        self.projection_window.apply_style(style_config)
+
+    def _update_preview_style(self):
+        if self.content_type is None:
+            self.ui["preview_frame"].configure(fg_color=self.default_preview_bg)
+            self.ui["preview_label"].configure(text_color=self.default_preview_fg)
+            self.ui["animation_indicator"].configure(fg_color="transparent")
+            return
+
+        style_config = self._get_style_config_for_current_content()
+
+        self.ui["preview_frame"].configure(fg_color=style_config['bg_color'])
+        self.ui["preview_label"].configure(
+            text_color=style_config['font_color'],
+            font=ctk.CTkFont(size=int(style_config['font_size'])/2.5, weight="bold") # Ajustei para /2.5 para caber melhor
+        )
+        
+        anim_type = style_config.get('animation_type', 'Nenhuma')
+        if anim_type != 'Nenhuma':
+            self.ui["animation_indicator"].configure(fg_color=style_config['animation_color'])
+        else:
+            self.ui["animation_indicator"].configure(fg_color="transparent")
             
+    def _get_style_config_for_current_content(self):
         content_map = {"music": "Projection_Music", "bible": "Projection_Bible", "text": "Projection_Text"}
-        # Se o tipo de conteúdo não for conhecido, usa o de música como padrão.
         section_name = content_map.get(self.content_type, "Projection_Music")
 
-        style_config = {
+        return {
             'font_size': self.config_manager.get_int_setting(section_name, 'font_size', 60),
             'font_color': self.config_manager.get_setting(section_name, 'font_color', 'white'),
             'bg_color': self.config_manager.get_setting(section_name, 'bg_color', 'black'),
             'animation_type': self.config_manager.get_setting(section_name, 'animation_type', 'Nenhuma'),
             'animation_color': self.config_manager.get_setting(section_name, 'animation_color', 'white')
         }
-        self.projection_window.apply_style(style_config)
+
+    def refresh_styles(self):
+        self._update_preview_style()
+        if self.projection_window and self.projection_window.winfo_exists():
+            self._apply_style_to_projection_window()
 
     def update_slide_view(self):
         if 0 <= self.current_index < len(self.slides):
@@ -146,30 +175,16 @@ class PresentationController:
         )
 
     def _on_projection_window_ready(self):
-        """
-        Callback chamado pela ProjectionWindow quando ela está 100% inicializada.
-        Aqui, aplicamos o estilo do conteúdo atual ou um estilo padrão.
-        """
         self.update_projection_buttons_state()
-        
-        # --- SOLUÇÃO PARA A "TELA PRETA" ---
-        self._apply_style_for_current_content()
-        # Após aplicar o estilo, atualiza o conteúdo do slide atual, se houver
+        self._apply_style_to_projection_window()
         self.update_slide_view() 
     
     def close_projection_window(self):
         if self.projection_window and self.projection_window.winfo_exists():
             self.projection_window.destroy()
-        
-        # --- SOLUÇÃO PARA O BOTÃO "TRAVADO" ---
-        # Limpa a referência e atualiza o estado do botão
         self.on_projection_window_closed()
 
     def on_projection_window_closed(self):
-        """
-        Callback para ser chamado pela ProjectionWindow ou pelo método close.
-        Garante que o estado seja limpo e a UI atualizada.
-        """
         self.projection_window = None
         self.update_projection_buttons_state()
 
@@ -181,7 +196,7 @@ class PresentationController:
     def clear_projection_content(self):
         self.slides = []
         self.current_index = -1
-        self.content_type = None
+        self.content_type = None 
         self.content_id = None
         self.clear_slide_view() 
         self.update_controls_state() 
@@ -189,6 +204,7 @@ class PresentationController:
             self.projection_window.clear_content()
         if hasattr(self.master, 'build_all_slides_grid'):
             self.master.build_all_slides_grid([], -1)
+        self._update_preview_style()
         
     def on_closing(self):
         self.close_projection_window()

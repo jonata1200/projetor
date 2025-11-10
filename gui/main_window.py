@@ -74,31 +74,36 @@ class MainWindow(ctk.CTk):
         """Cria o painel direito com abas para pré-visualização e visão geral."""
         outer_frame = ctk.CTkFrame(self)
         outer_frame.grid(row=1, column=1, pady=(0,10), padx=(0,10), sticky="nsew")
-        outer_frame.grid_rowconfigure(0, weight=1) # A área das abas expande
+        outer_frame.grid_rowconfigure(0, weight=1)
         outer_frame.grid_columnconfigure(0, weight=1)
 
-        # --- CRIAÇÃO DO CTkTabview ---
         self.preview_tab_view = ctk.CTkTabview(outer_frame)
         self.preview_tab_view.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         
         tab_single = self.preview_tab_view.add("Pré-visualização")
         tab_all = self.preview_tab_view.add("Todos os Slides")
 
-        # --- Conteúdo da Aba "Pré-visualização" (o preview grande) ---
         tab_single.grid_rowconfigure(0, weight=1); tab_single.grid_columnconfigure(0, weight=1)
-        preview_frame = ctk.CTkFrame(tab_single, fg_color=("gray90", "gray20"))
-        preview_frame.grid(row=0, column=0, sticky="nsew")
-        preview_frame.grid_propagate(False)
-        self.slide_preview_label = ctk.CTkLabel(preview_frame, text="", font=ctk.CTkFont(size=30, weight="bold"), justify=ctk.CENTER)
-        self.slide_preview_label.place(relx=0.5, rely=0.5, anchor=ctk.CENTER)
-        preview_frame.bind("<Configure>", lambda e: self.slide_preview_label.configure(wraplength=e.width * 0.95))
         
-        # --- Conteúdo da Aba "Todos os Slides" (a grade de miniaturas) ---
+        # --- ALTERAÇÃO 1: MANTEMOS UMA REFERÊNCIA AO FRAME DA PRÉ-VISUALIZAÇÃO ---
+        # A cor de fundo será aplicada a este frame.
+        self.preview_frame = ctk.CTkFrame(tab_single, fg_color=("gray90", "gray20"))
+        self.preview_frame.grid(row=0, column=0, sticky="nsew")
+        self.preview_frame.grid_propagate(False)
+        
+        self.slide_preview_label = ctk.CTkLabel(self.preview_frame, text="", font=ctk.CTkFont(size=30, weight="bold"), justify=ctk.CENTER)
+        self.slide_preview_label.place(relx=0.5, rely=0.5, anchor=ctk.CENTER)
+        self.preview_frame.bind("<Configure>", lambda e: self.slide_preview_label.configure(wraplength=e.width * 0.95))
+
+        # --- ALTERAÇÃO 2: ADICIONAMOS A BARRA DE COR DA ANIMAÇÃO ---
+        # Este pequeno frame na parte inferior mostrará a cor da animação.
+        self.animation_color_indicator = ctk.CTkFrame(self.preview_frame, height=5, fg_color="transparent")
+        self.animation_color_indicator.pack(side="bottom", fill="x", padx=5, pady=5)
+        
         self.all_slides_grid_frame = ctk.CTkScrollableFrame(tab_all, label_text=None)
         self.all_slides_grid_frame.pack(fill="both", expand=True)
-        self.slide_miniatures = [] # Para guardar referências às miniaturas
+        self.slide_miniatures = []
 
-        # --- Controles na parte inferior (sem o botão "Ver Todos") ---
         controls_frame = ctk.CTkFrame(outer_frame)
         controls_frame.grid(row=1, column=0, pady=(5,0), padx=5, sticky="ew")
         controls_frame.grid_columnconfigure(1, weight=1)
@@ -298,8 +303,11 @@ class MainWindow(ctk.CTk):
 
     def _init_controllers(self):
         """Agrupa os widgets e instancia os controladores, conectando-os."""
+        # --- ALTERAÇÃO 3: PASSAMOS OS NOVOS WIDGETS PARA O CONTROLADOR ---
         presentation_ui = {
             "preview_label": self.slide_preview_label,
+            "preview_frame": self.preview_frame, # Referência para o fundo
+            "animation_indicator": self.animation_color_indicator, # Referência para a barra de cor
             "indicator_label": self.slide_indicator_label,
             "btn_prev": self.btn_prev_slide,
             "btn_next": self.btn_next_slide,
@@ -366,7 +374,11 @@ class MainWindow(ctk.CTk):
     def show_settings_dialog(self):
         """Abre o diálogo de configurações."""
         dialog = SettingsDialog(master=self, config_manager=self.config_manager)
-        dialog.wait_window()
+        dialog.wait_window() # Esta linha pausa a execução até a janela de diálogo ser fechada
+
+        # --- ALTERAÇÃO 4: AVISAMOS O CONTROLADOR PARA ATUALIZAR OS ESTILOS ---
+        # Assim que a janela fecha, mandamos o controlador recarregar os estilos.
+        self.presentation_controller.refresh_styles()
 
     def toggle_theme(self):
         """Alterna entre os temas Claro e Escuro."""
