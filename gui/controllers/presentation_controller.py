@@ -37,9 +37,9 @@ class PresentationController:
 
     def load_content(self, content_type, slides, content_id=None, start_index=0):
         """
-        Carrega novo conteúdo E APLICA O ESTILO CORRESPONDENTE UMA ÚNICA VEZ.
+        Carrega novo conteúdo E APLICA O ESTILO CORRESPONDENTE APENAS SE O TIPO MUDAR.
         """
-        # Verifica se o tipo de conteúdo mudou. Se não, não precisa reaplicar o estilo.
+        # A condição `apply_new_style` é a chave aqui.
         apply_new_style = (self.content_type != content_type)
 
         self.content_type = content_type
@@ -49,9 +49,8 @@ class PresentationController:
         if self.slides:
             self.current_index = start_index if 0 <= start_index < len(self.slides) else 0
             
-            # --- LÓGICA DE ESTILO MOVIDA PARA CÁ ---
+            # Aplica o estilo apenas uma vez por tipo de conteúdo.
             if self.projection_window and self.projection_window.winfo_exists() and apply_new_style:
-                print("--- DEBUG 1: 'load_content' está tentando aplicar um novo estilo. ---") # <-- ADICIONE AQUI
                 content_map = {"music": "Projection_Music", "bible": "Projection_Bible", "text": "Projection_Text"}
                 section_name = content_map.get(self.content_type, "Projection_Music")
 
@@ -64,14 +63,30 @@ class PresentationController:
                 }
                 self.projection_window.apply_style(style_config)
 
-            self.update_slide_view() # Agora só atualiza o texto
+            # Chama update_slide_view que agora só atualiza o texto.
+            self.update_slide_view()
             self.master.build_all_slides_grid(self.slides, self.current_index)
         else:
+            # Limpa tudo se não houver slides
             self.current_index = -1
             self.clear_slide_view()
             self.master.build_all_slides_grid([], -1)
         
         self.update_controls_state()
+
+    def update_slide_view(self):
+        """
+        Este método agora tem UMA ÚNICA RESPONSABILIDADE: atualizar o texto.
+        """
+        if 0 <= self.current_index < len(self.slides):
+            slide_text = self.slides[self.current_index]
+            self.ui["preview_label"].configure(text=slide_text)
+            self.ui["indicator_label"].configure(text=f"{self.current_index + 1} / {len(self.slides)}")
+            
+            if self.projection_window and self.projection_window.winfo_exists():
+                self.projection_window.update_content(slide_text)
+        else:
+            self.clear_slide_view()
 
     def next_slide(self):
         if self.slides and self.current_index < len(self.slides) - 1:
@@ -93,19 +108,6 @@ class PresentationController:
             self.current_index = index
             self.update_slide_view()
             self.master.update_miniature_highlight(old_index, self.current_index)
-
-    def update_slide_view(self):
-        """Apenas atualiza o conteúdo do texto, sem mexer no estilo."""
-        if 0 <= self.current_index < len(self.slides):
-            slide_text = self.slides[self.current_index]
-            self.ui["preview_label"].configure(text=slide_text)
-            self.ui["indicator_label"].configure(text=f"{self.current_index + 1} / {len(self.slides)}")
-            
-            if self.projection_window and self.projection_window.winfo_exists():
-                # Apenas chama a função que atualiza o texto com a transição
-                self.projection_window.update_content(slide_text)
-        else:
-            self.clear_slide_view()
     
     def clear_slide_view(self):
         self.ui["preview_label"].configure(text="")

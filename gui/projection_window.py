@@ -47,43 +47,34 @@ class ProjectionWindow(ctk.CTkToplevel):
 
     def apply_style(self, style_config):
         """Aplica um novo perfil de estilo à janela de projeção."""
+        print(f"--- DEBUG 2: 'apply_style' foi chamado com a configuração: {style_config.get('animation_type')} ---")
         
-        print(f"--- DEBUG 2: 'apply_style' foi chamado com a configuração: {style_config.get('animation_type')} ---") # <-- ADICIONE AQUI
-        
-        # Mapa de nomes de configuração para classes de animação reais
-        animation_map = {
-            "Neve": SnowAnimation,
-            "Partículas Flutuantes": FloatingParticlesAnimation
-        }
-
-        # Pega o nome da animação da configuração (ex: "Neve")
+        animation_map = {"Neve": SnowAnimation, "Partículas Flutuantes": FloatingParticlesAnimation}
         new_anim_name = style_config.get('animation_type', 'Nenhuma')
-        
-        # Pega a classe da nova animação a partir do mapa
-        new_anim_class = animation_map.get(new_anim_name) # Retorna a classe ou None
-
-        # Pega a classe da animação atual (se houver)
+        new_anim_class = animation_map.get(new_anim_name)
         current_anim_class = self.animation.__class__ if self.animation else None
 
-        # Compara as classes diretamente. Só recria se a CLASSE for diferente.
+        # Compara as classes. Só age se a CLASSE for diferente.
         if new_anim_class is not current_anim_class:
-            if self.animation:
-                self.animation.stop()
+            if self.animation: self.animation.stop()
 
             if new_anim_class:
                 self.animation = new_anim_class(self.main_canvas, self.label_window_id)
-                # Garante que as partículas sejam criadas com o tamanho certo
                 if self.main_canvas.winfo_width() > 1:
                     self.animation.on_resize(self.main_canvas.winfo_width(), self.main_canvas.winfo_height())
-                self.animation.start()
+                
+                # --- CORREÇÃO IMPORTANTE ---
+                # O start_animation não deve ser chamado aqui, mas sim pelo _initialize_layout
+                # ou quando a janela já está visível e pronta.
+                # Apenas iniciamos se a janela já estiver pronta.
+                if self.winfo_exists() and self.winfo_width() > 1:
+                    self.start_animation()
             else:
                 self.animation = None
         
-        # Atualiza a cor da animação (se ela existir)
         if self.animation:
             self.animation.particle_color = style_config.get('animation_color')
 
-        # --- LÓGICA DE ESTILO VISUAL (permanece a mesma) ---
         self.bg_color = style_config.get('bg_color')
         self.font_color = style_config.get('font_color')
         self.main_canvas.configure(bg=self.bg_color)
@@ -113,6 +104,7 @@ class ProjectionWindow(ctk.CTkToplevel):
     def start_animation(self):
         """Inicia a animação de fundo, se houver uma."""
         if self.animation:
+            print(f"--- DEBUG 3: 'start_animation' está iniciando o objeto: {self.animation.__class__.__name__} ---")
             self.animation.start()
 
     def stop_animation(self):
