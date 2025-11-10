@@ -47,25 +47,34 @@ class ProjectionWindow(ctk.CTkToplevel):
 
     def apply_style(self, style_config):
         """Aplica um novo perfil de estilo à janela de projeção."""
-        # --- LÓGICA DE ANIMAÇÃO ---
-        # Determina o nome da classe da nova animação
-        new_anim_name_raw = style_config.get('animation_type', 'Nenhuma')
-        new_anim_class_name = new_anim_name_raw.replace(" ", "") + "Animation"
         
-        # Determina o nome da classe da animação atual (se houver)
-        current_anim_class_name = self.animation.__class__.__name__ if self.animation else "NenhumaAnimation"
+        print(f"--- DEBUG 2: 'apply_style' foi chamado com a configuração: {style_config.get('animation_type')} ---") # <-- ADICIONE AQUI
+        
+        # Mapa de nomes de configuração para classes de animação reais
+        animation_map = {
+            "Neve": SnowAnimation,
+            "Partículas Flutuantes": FloatingParticlesAnimation
+        }
 
-        # Só recria a animação se o TIPO mudou
-        if new_anim_class_name != current_anim_class_name:
+        # Pega o nome da animação da configuração (ex: "Neve")
+        new_anim_name = style_config.get('animation_type', 'Nenhuma')
+        
+        # Pega a classe da nova animação a partir do mapa
+        new_anim_class = animation_map.get(new_anim_name) # Retorna a classe ou None
+
+        # Pega a classe da animação atual (se houver)
+        current_anim_class = self.animation.__class__ if self.animation else None
+
+        # Compara as classes diretamente. Só recria se a CLASSE for diferente.
+        if new_anim_class is not current_anim_class:
             if self.animation:
                 self.animation.stop()
 
-            animation_map = {"NeveAnimation": SnowAnimation, "PartículasFlutuantesAnimation": FloatingParticlesAnimation}
-            
-            if new_anim_name_raw in ["Neve", "Partículas Flutuantes"]:
-                animation_class = animation_map[new_anim_class_name]
-                self.animation = animation_class(self.main_canvas, self.label_window_id)
-                self.animation.on_resize(self.main_canvas.winfo_width(), self.main_canvas.winfo_height())
+            if new_anim_class:
+                self.animation = new_anim_class(self.main_canvas, self.label_window_id)
+                # Garante que as partículas sejam criadas com o tamanho certo
+                if self.main_canvas.winfo_width() > 1:
+                    self.animation.on_resize(self.main_canvas.winfo_width(), self.main_canvas.winfo_height())
                 self.animation.start()
             else:
                 self.animation = None
@@ -74,28 +83,43 @@ class ProjectionWindow(ctk.CTkToplevel):
         if self.animation:
             self.animation.particle_color = style_config.get('animation_color')
 
-        # Armazena as cores para a animação de fade
+        # --- LÓGICA DE ESTILO VISUAL (permanece a mesma) ---
         self.bg_color = style_config.get('bg_color')
         self.font_color = style_config.get('font_color')
-
-        # Aplica as configurações visuais
         self.main_canvas.configure(bg=self.bg_color)
         self.projection_label.configure(
             font=ctk.CTkFont(size=int(style_config.get('font_size')), weight="bold"),
             text_color=self.font_color,
             fg_color=self.bg_color
         )
-        
+
     def _initialize_layout(self):
         if self.winfo_width() <= 1: self.after(50, self._initialize_layout); return
         self._on_resize()
-        # Não inicia mais a animação aqui, pois o apply_style cuidará disso.
+        
+        # A chamada a apply_style foi movida para o PresentationController,
+        # mas a animação precisa ser iniciada aqui se já foi criada.
+        self.start_animation() 
+        
         if self.on_ready_callback: self.on_ready_callback()
         
     def close_window(self, event=None):
-        if self.animation: self.animation.stop()
+        # O stop_animation é chamado aqui, então precisamos do método
+        self.stop_animation() 
         if self.controller: self.controller.on_projection_window_closed()
         if self.winfo_exists(): self.destroy()
+
+    # --- INÍCIO DOS MÉTODOS FALTANTES ---
+    def start_animation(self):
+        """Inicia a animação de fundo, se houver uma."""
+        if self.animation:
+            self.animation.start()
+
+    def stop_animation(self):
+        """Para a animação de fundo, se houver uma."""
+        if self.animation:
+            self.animation.stop()
+    # --- FIM DOS MÉTODOS FALTANTES ---
 
     def update_content(self, text):
         if self.is_fading: self.after_cancel(self._after_id_fade)

@@ -36,19 +36,40 @@ class PresentationController:
             return
 
     def load_content(self, content_type, slides, content_id=None, start_index=0):
+        """
+        Carrega novo conteúdo E APLICA O ESTILO CORRESPONDENTE UMA ÚNICA VEZ.
+        """
+        # Verifica se o tipo de conteúdo mudou. Se não, não precisa reaplicar o estilo.
+        apply_new_style = (self.content_type != content_type)
+
         self.content_type = content_type
         self.slides = slides if slides else []
         self.content_id = content_id
         
         if self.slides:
             self.current_index = start_index if 0 <= start_index < len(self.slides) else 0
-            self.update_slide_view()
-            # Constrói a grade de miniaturas
+            
+            # --- LÓGICA DE ESTILO MOVIDA PARA CÁ ---
+            if self.projection_window and self.projection_window.winfo_exists() and apply_new_style:
+                print("--- DEBUG 1: 'load_content' está tentando aplicar um novo estilo. ---") # <-- ADICIONE AQUI
+                content_map = {"music": "Projection_Music", "bible": "Projection_Bible", "text": "Projection_Text"}
+                section_name = content_map.get(self.content_type, "Projection_Music")
+
+                style_config = {
+                    'font_size': self.config_manager.get_int_setting(section_name, 'font_size', 60),
+                    'font_color': self.config_manager.get_setting(section_name, 'font_color', 'white'),
+                    'bg_color': self.config_manager.get_setting(section_name, 'bg_color', 'black'),
+                    'animation_type': self.config_manager.get_setting(section_name, 'animation_type', 'Nenhuma'),
+                    'animation_color': self.config_manager.get_setting(section_name, 'animation_color', 'white')
+                }
+                self.projection_window.apply_style(style_config)
+
+            self.update_slide_view() # Agora só atualiza o texto
             self.master.build_all_slides_grid(self.slides, self.current_index)
         else:
             self.current_index = -1
             self.clear_slide_view()
-            self.master.build_all_slides_grid([], -1) # Limpa a grade também
+            self.master.build_all_slides_grid([], -1)
         
         self.update_controls_state()
 
@@ -73,29 +94,15 @@ class PresentationController:
             self.update_slide_view()
             self.master.update_miniature_highlight(old_index, self.current_index)
 
-    def update_slide_view(self): # Removido o argumento 'force_projection_update'
+    def update_slide_view(self):
+        """Apenas atualiza o conteúdo do texto, sem mexer no estilo."""
         if 0 <= self.current_index < len(self.slides):
             slide_text = self.slides[self.current_index]
             self.ui["preview_label"].configure(text=slide_text)
             self.ui["indicator_label"].configure(text=f"{self.current_index + 1} / {len(self.slides)}")
             
             if self.projection_window and self.projection_window.winfo_exists():
-                # --- LÓGICA PRINCIPAL DA MUDANÇA ---
-                # 1. Determina qual seção de configuração usar
-                content_map = {"music": "Projection_Music", "bible": "Projection_Bible", "text": "Projection_Text"}
-                section_name = content_map.get(self.content_type, "Projection_Music") # Padrão para Música
-
-                # 2. Monta o dicionário de estilo
-                style_config = {
-                    'font_size': self.config_manager.get_int_setting(section_name, 'font_size', 60),
-                    'font_color': self.config_manager.get_setting(section_name, 'font_color', 'white'),
-                    'bg_color': self.config_manager.get_setting(section_name, 'bg_color', 'black'),
-                    'animation_type': self.config_manager.get_setting(section_name, 'animation_type', 'Nenhuma'),
-                    'animation_color': self.config_manager.get_setting(section_name, 'animation_color', 'white')
-                }
-
-                # 3. Aplica o estilo e depois o conteúdo
-                self.projection_window.apply_style(style_config)
+                # Apenas chama a função que atualiza o texto com a transição
                 self.projection_window.update_content(slide_text)
         else:
             self.clear_slide_view()
@@ -138,7 +145,7 @@ class PresentationController:
             self.update_slide_view()
     
     def open_projection_window(self):
-        """Cria e configura a janela de projeção."""
+        """Cria e configura a janela de projeção, aplicando um estilo inicial."""
         if self.projection_window and self.projection_window.winfo_exists():
             self.projection_window.lift()
             return
@@ -163,6 +170,20 @@ class PresentationController:
                 config_manager=self.config_manager,
                 on_ready_callback=self._finalize_projection_setup
             )
+            
+            # --- CORREÇÃO PRINCIPAL ---
+            # Aplica um estilo padrão (ex: de música) assim que a janela é criada.
+            # Isso garante que a animação padrão comece imediatamente.
+            default_section = "Projection_Music"
+            style_config = {
+                'font_size': self.config_manager.get_int_setting(default_section, 'font_size', 60),
+                'font_color': self.config_manager.get_setting(default_section, 'font_color', 'white'),
+                'bg_color': self.config_manager.get_setting(default_section, 'bg_color', 'black'),
+                'animation_type': self.config_manager.get_setting(default_section, 'animation_type', 'Nenhuma'),
+                'animation_color': self.config_manager.get_setting(default_section, 'animation_color', 'white')
+            }
+            self.projection_window.apply_style(style_config)
+            # --- FIM DA CORREÇÃO ---
             
             self.update_projection_buttons_state()
         else:
