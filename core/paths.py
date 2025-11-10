@@ -9,7 +9,7 @@ DATA_DIR = SOURCE_ROOT / "data"
 
 # O arquivo de configuração geralmente fica na raiz do projeto, um nível acima do source
 PROJECT_ROOT = SOURCE_ROOT.parent
-CONFIG_PATH = PROJECT_ROOT / "config.ini"
+CONFIG_PATH = SOURCE_ROOT / "config.ini"
 
 # Os caminhos para os arquivos de dados agora serão calculados corretamente
 MUSIC_DB_PATH = DATA_DIR / "music_db.json"

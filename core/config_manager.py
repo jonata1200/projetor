@@ -77,10 +77,3 @@ class ConfigManager:
         except IOError as e:
             print(f"Erro ao salvar arquivo de configuração: {e}")
             return False # Retorna False em caso de erro
-
-if __name__ == '__main__':
-    cm = ConfigManager()
-    cm.set_setting('Audio', 'input_device_index', '2')
-    cm.set_setting('Audio', 'energy_threshold', '3500')
-    idx = cm.get_setting('Audio', 'input_device_index')
-    energy = cm.get_int_setting('Audio', 'energy_threshold')

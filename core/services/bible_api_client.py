@@ -54,30 +54,3 @@ class BibleAPIClient:
         if data and "verses" in data:
             return data["verses"] 
         return []
-
-if __name__ == '__main__':
-    client = BibleAPIClient()
-
-    versions = client.get_versions()
-    if versions:
-        for v in versions:
-            print(f"{v['name']} ({v['version']})")
-
-    books = client.get_books()
-    if books:
-        for i, book in enumerate(books[:5]): 
-            print(f"{book['name']} ({book['abbrev']['pt'] if isinstance(book['abbrev'], dict) else book['abbrev']}) - Capítulos: {book['chapters']}")
-    
-    if books:
-        selected_book_abbrev = books[0]['abbrev']['pt'] if isinstance(books[0]['abbrev'], dict) else books[0]['abbrev'] 
-        selected_version = "nvi"
-        chapter = 1
-        print(f"\n--- Versículos de {selected_book_abbrev.upper()} Cap. {chapter} ({selected_version.upper()}) ---")
-        verses = client.get_chapter_verses(selected_version, selected_book_abbrev, chapter)
-        if verses:
-            for verse in verses[:3]: 
-                print(f"{verse['number']}. {verse['text']}")
-        else:
-            print("Nenhum versículo encontrado ou erro na API.")
-    else:
-        print("Não foi possível carregar os livros para testar os versículos.")
