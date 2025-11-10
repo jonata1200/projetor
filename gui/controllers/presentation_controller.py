@@ -76,7 +76,8 @@ class PresentationController:
         anim_type = style_config.get('animation_type', 'Nenhuma')
         anim_text_map = {
             "Neve": "❄️ Neve Ativa",
-            "Partículas Flutuantes": "✨ Partículas Ativas"
+            "Partículas Flutuantes": "✨ Partículas Ativas",
+            "Estrelas Piscando": "⭐ Estrelas Ativas"
         }
         # --- ALTERAÇÃO 1: ATUALIZA O INDICADOR DE TEXTO DA ANIMAÇÃO ---
         self.ui["animation_text_indicator"].configure(text=anim_text_map.get(anim_type, ""))

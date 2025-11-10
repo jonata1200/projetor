@@ -1,4 +1,3 @@
-import customtkinter as ctk
 from tkinter import messagebox
 
 class TextController:
@@ -27,8 +26,6 @@ class TextController:
             messagebox.showwarning("Texto Vazio", "Por favor, digite um texto para projetar.", parent=self.master)
             return
 
-        # O PresentationController espera uma lista de slides.
-        # Para texto livre, será uma lista com um único item.
         slides = [text_content]
         
         self.presentation_controller.load_content("text", slides)

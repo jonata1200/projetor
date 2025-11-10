@@ -1,6 +1,6 @@
 import customtkinter as ctk
 import tkinter as tk
-from .animations import SnowAnimation, FloatingParticlesAnimation
+from .animations import SnowAnimation, FloatingParticlesAnimation, BlinkingStarsAnimation
 
 class ProjectionWindow(ctk.CTkToplevel):
     FADE_STEPS = 15
@@ -44,7 +44,11 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.focus_force()
 
     def apply_style(self, style_config):
-        animation_map = {"Neve": SnowAnimation, "Partículas Flutuantes": FloatingParticlesAnimation}
+        animation_map = {
+            "Neve": SnowAnimation,
+            "Partículas Flutuantes": FloatingParticlesAnimation,
+            "Estrelas Piscando": BlinkingStarsAnimation
+        }
         new_anim_name = style_config.get('animation_type', 'Nenhuma')
         new_anim_class = animation_map.get(new_anim_name)
         current_anim_class = self.animation.__class__ if self.animation else None

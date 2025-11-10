@@ -5,8 +5,8 @@ from tkinter.colorchooser import askcolor
 # =============================================================================
 # Diálogo para Adicionar/Editar Músicas (Sem alterações aqui)
 # =============================================================================
+
 class AddEditSongDialog(ctk.CTkToplevel):
-    # ... (toda a classe AddEditSongDialog permanece igual)
     """
     Janela de diálogo para criar uma nova música ou editar uma existente.
     """
@@ -90,12 +90,11 @@ class AddEditSongDialog(ctk.CTkToplevel):
         except Exception as e:
             print(f"Erro ao centralizar AddEditSongDialog: {e}")
 
-
 # =============================================================================
 # Diálogo de Configurações (Sem alterações aqui)
 # =============================================================================
+
 class SettingsDialog(ctk.CTkToplevel):
-    # ... (toda a classe SettingsDialog permanece igual)
     def __init__(self, master, config_manager):
         super().__init__(master)
         self.config_manager = config_manager
@@ -160,7 +159,7 @@ class SettingsDialog(ctk.CTkToplevel):
         
         # Animação de Fundo
         ctk.CTkLabel(tab, text="Animação de Fundo:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
-        animation_options = ["Nenhuma", "Neve", "Partículas Flutuantes"]
+        animation_options = ["Nenhuma", "Neve", "Partículas Flutuantes", "Estrelas Piscando"]
         vars_dict['animation_type'] = ctk.StringVar(value=self.config_manager.get_setting(section_name, 'animation_type'))
         ctk.CTkOptionMenu(tab, variable=vars_dict['animation_type'], values=animation_options).grid(row=3, column=1, padx=10, pady=5, sticky="ew")
         
@@ -206,7 +205,6 @@ class SettingsDialog(ctk.CTkToplevel):
                     return False
         return True # Se todas foram salvas com sucesso, retorna True.
 
-
     def _pick_color(self, string_var_to_update):
         # (Este método permanece o mesmo)
         color_info = askcolor(parent=self)
@@ -228,7 +226,6 @@ class SettingsDialog(ctk.CTkToplevel):
             y = master_y + (master_h - dialog_h) // 2
             self.geometry(f"+{x}+{y}")
         except Exception: pass
-
 
 # =============================================================================
 # Diálogo de Ajuda de Atalhos (COM AS ALTERAÇÕES)

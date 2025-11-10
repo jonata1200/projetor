@@ -3,7 +3,6 @@ import random
 # =============================================================================
 # Classe Base para Animações
 # =============================================================================
-
 class BaseAnimation:
     def __init__(self, canvas, label_window_id):
         self.canvas = canvas
@@ -28,9 +27,8 @@ class BaseAnimation:
         raise NotImplementedError
 
 # =============================================================================
-# Animação 1: Neve
+# Animação 1: Neve (Já estava correta)
 # =============================================================================
-
 class SnowFlake:
     def __init__(self, w, h):
         self.w, self.h = w, h
@@ -48,7 +46,6 @@ class SnowAnimation(BaseAnimation):
     def update_frame(self):
         if not self.is_running: return
         self.canvas.delete("anim_particle")
-        # A cor será passada pelo __init__ da ProjectionWindow
         color = getattr(self, 'particle_color', 'white')
         for p in self.particles:
             p.move()
@@ -61,7 +58,6 @@ class SnowAnimation(BaseAnimation):
 # =============================================================================
 # Animação 2: Partículas Flutuantes
 # =============================================================================
-
 class FloatingParticle:
     def __init__(self, w, h):
         self.w, self.h = w, h
@@ -80,18 +76,86 @@ class FloatingParticlesAnimation(BaseAnimation):
     def update_frame(self):
         if not self.is_running: return
         self.canvas.delete("anim_particle")
-        base_color_hex = getattr(self, 'particle_color', '#FFFFFF')
-        try: # Converte a cor base de hex para RGB
-            r, g, b = int(base_color_hex[1:3], 16), int(base_color_hex[3:5], 16), int(base_color_hex[5:7], 16)
-        except (ValueError, IndexError):
-            r, g, b = 255, 255, 255 # Fallback para branco
+        
+        color_string = getattr(self, 'particle_color', 'white')
+        try:
+            # --- CORREÇÃO AQUI: USA O MÉTODO ROBUSTO winfo_rgb ---
+            # Ele converte qualquer cor ('white', '#DDDDDD', etc.) para RGB.
+            # Retorna valores de 16 bits (0-65535), então dividimos por 256 para obter 8 bits (0-255).
+            rgb_16bit = self.canvas.winfo_rgb(color_string)
+            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
+        except Exception:
+            # Fallback se a cor for inválida
+            r, g, b = 255, 255, 255
+
         for p in self.particles:
             p.move()
-            # Aplica o alpha da partícula à cor base
             val_r, val_g, val_b = int(p.alpha * r), int(p.alpha * g), int(p.alpha * b)
             color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
             x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
             self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
+        self.canvas.tag_lower("anim_particle")
+        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
+        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
+
+# =============================================================================
+# Animação 3: Estrelas Piscando
+# =============================================================================
+class StarParticle:
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.reset()
+
+    def reset(self):
+        self.x = random.randint(0, self.w)
+        self.y = random.randint(0, self.h)
+        self.size = random.uniform(1, 3)
+        self.max_brightness = random.uniform(0.4, 1.0)
+        self.current_brightness = 0.0
+        self.state = "brightening"
+        self.speed = random.uniform(0.01, 0.04)
+
+    def update(self):
+        if self.state == "brightening":
+            self.current_brightness += self.speed
+            if self.current_brightness >= self.max_brightness:
+                self.current_brightness = self.max_brightness
+                self.state = "dimming"
+        elif self.state == "dimming":
+            self.current_brightness -= self.speed
+            if self.current_brightness <= 0:
+                self.reset()
+
+class BlinkingStarsAnimation(BaseAnimation):
+    NUM_PARTICLES, DELAY = 100, 30
+
+    def on_resize(self, width, height):
+        self.particles = [StarParticle(width, height) for _ in range(self.NUM_PARTICLES)]
+    
+    def update_frame(self):
+        if not self.is_running: return
+        
+        self.canvas.delete("anim_particle")
+        
+        color_string = getattr(self, 'particle_color', 'white')
+        try:
+            # --- CORREÇÃO AQUI: USA O MÉTODO ROBUSTO winfo_rgb ---
+            rgb_16bit = self.canvas.winfo_rgb(color_string)
+            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
+        except Exception:
+            r, g, b = 255, 255, 255
+
+        for p in self.particles:
+            p.update()
+            
+            if p.current_brightness > 0:
+                alpha = p.current_brightness
+                val_r, val_g, val_b = int(alpha * r), int(alpha * g), int(alpha * b)
+                color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
+                
+                x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
+                self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
+        
         self.canvas.tag_lower("anim_particle")
         if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
         self._after_id = self.canvas.after(self.DELAY, self.update_frame)
