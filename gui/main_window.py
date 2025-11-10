@@ -70,50 +70,84 @@ class MainWindow(ctk.CTk):
         dialog.wait_window()
 
     def _create_preview_pane(self):
-        """Cria o painel direito para pré-visualização e controle de slides."""
+        """Cria o painel direito com abas para pré-visualização e visão geral."""
         outer_frame = ctk.CTkFrame(self)
         outer_frame.grid(row=1, column=1, pady=(0,10), padx=(0,10), sticky="nsew")
-        outer_frame.grid_rowconfigure(1, weight=1)
+        outer_frame.grid_rowconfigure(0, weight=1) # A área das abas expande
         outer_frame.grid_columnconfigure(0, weight=1)
+
+        # --- CRIAÇÃO DO CTkTabview ---
+        self.preview_tab_view = ctk.CTkTabview(outer_frame)
+        self.preview_tab_view.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
         
-        ctk.CTkLabel(outer_frame, text="Pré-visualização do Slide Atual", font=ctk.CTkFont(weight="bold")).grid(row=0, column=0, pady=5, padx=5, sticky="nw")
-        
-        preview_frame = ctk.CTkFrame(outer_frame, fg_color=("gray90", "gray20"))
-        preview_frame.grid(row=1, column=0, sticky="nsew", padx=5, pady=(0,5))
+        tab_single = self.preview_tab_view.add("Pré-visualização")
+        tab_all = self.preview_tab_view.add("Todos os Slides")
+
+        # --- Conteúdo da Aba "Pré-visualização" (o preview grande) ---
+        tab_single.grid_rowconfigure(0, weight=1); tab_single.grid_columnconfigure(0, weight=1)
+        preview_frame = ctk.CTkFrame(tab_single, fg_color=("gray90", "gray20"))
+        preview_frame.grid(row=0, column=0, sticky="nsew")
         preview_frame.grid_propagate(False)
-        preview_frame.grid_rowconfigure(0, weight=1)
-        preview_frame.grid_columnconfigure(0, weight=1)
-        
         self.slide_preview_label = ctk.CTkLabel(preview_frame, text="", font=ctk.CTkFont(size=30, weight="bold"), justify=ctk.CENTER)
         self.slide_preview_label.place(relx=0.5, rely=0.5, anchor=ctk.CENTER)
+        preview_frame.bind("<Configure>", lambda e: self.slide_preview_label.configure(wraplength=e.width * 0.95))
         
-        def _on_resize(event):
-            self.slide_preview_label.configure(wraplength=event.width * 0.95)
-        preview_frame.bind("<Configure>", _on_resize)
-        
-        controls_frame = ctk.CTkFrame(outer_frame)
-        controls_frame.grid(row=2, column=0, pady=(5,0), padx=5, sticky="ew")
-        controls_frame.grid_columnconfigure(1, weight=1)
+        # --- Conteúdo da Aba "Todos os Slides" (a grade de miniaturas) ---
+        self.all_slides_grid_frame = ctk.CTkScrollableFrame(tab_all, label_text=None)
+        self.all_slides_grid_frame.pack(fill="both", expand=True)
+        self.slide_miniatures = [] # Para guardar referências às miniaturas
 
+        # --- Controles na parte inferior (sem o botão "Ver Todos") ---
+        controls_frame = ctk.CTkFrame(outer_frame)
+        controls_frame.grid(row=1, column=0, pady=(5,0), padx=5, sticky="ew")
+        controls_frame.grid_columnconfigure(1, weight=1)
+        
         self.btn_prev_slide = ctk.CTkButton(controls_frame, text="< Anterior", state="disabled")
         self.btn_prev_slide.grid(row=0, column=0, pady=5, padx=5, sticky="w")
         
         middle_sub_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
-        middle_sub_frame.grid(row=0, column=1, pady=5, padx=5) # sticky="ew" removido para centralizar
-
-        # Adicione os widgets DENTRO do sub-frame central
-        self.btn_show_all_slides = ctk.CTkButton(middle_sub_frame, text="Ver Todos", state="disabled", width=100)
-        self.btn_show_all_slides.pack(side="left", padx=10)
-        
+        middle_sub_frame.grid(row=0, column=1, pady=5, padx=5)
         self.slide_indicator_label = ctk.CTkLabel(middle_sub_frame, text="- / -")
         self.slide_indicator_label.pack(side="left", padx=10)
-        
-        # --- BOTÃO NOVO ADICIONADO AQUI ---
         self.btn_clear_preview = ctk.CTkButton(middle_sub_frame, text="Limpar", width=80, fg_color=("gray70", "gray30"))
         self.btn_clear_preview.pack(side="left", padx=10)
         
         self.btn_next_slide = ctk.CTkButton(controls_frame, text="Próximo >", state="disabled")
         self.btn_next_slide.grid(row=0, column=2, pady=5, padx=5, sticky="e")
+
+    def build_all_slides_grid(self, slides, current_index):
+        """Constrói a grade de miniaturas de slides na aba 'Todos os Slides'."""
+        for widget in self.all_slides_grid_frame.winfo_children():
+            widget.destroy()
+        self.slide_miniatures.clear()
+
+        if not slides: return
+
+        num_columns = 3
+        for i in range(num_columns):
+            self.all_slides_grid_frame.grid_columnconfigure(i, weight=1, uniform="slide_col")
+
+        for index, slide_text in enumerate(slides):
+            is_current = (index == current_index)
+            border_color = "cyan" if is_current else ("gray70", "gray30")
+            
+            miniature_frame = ctk.CTkFrame(self.all_slides_grid_frame, border_width=2, border_color=border_color)
+            miniature_frame.grid(row=index // num_columns, column=index % num_columns, padx=5, pady=5, sticky="nsew")
+            self.slide_miniatures.append(miniature_frame)
+
+            preview_text = " ".join(slide_text.split()[:20]) + ("..." if len(slide_text.split()) > 20 else "")
+            text_label = ctk.CTkLabel(miniature_frame, text=preview_text, font=ctk.CTkFont(size=11), wraplength=180, justify="left", anchor="nw")
+            text_label.pack(fill="both", expand=True, padx=5, pady=5)
+
+            for widget in [miniature_frame, text_label]:
+                widget.bind("<Button-1>", lambda e, idx=index: self.presentation_controller.go_to_slide(idx))
+
+    def update_miniature_highlight(self, old_index, new_index):
+        """Atualiza qual miniatura está destacada."""
+        if 0 <= old_index < len(self.slide_miniatures):
+            self.slide_miniatures[old_index].configure(border_color=("gray70", "gray30"))
+        if 0 <= new_index < len(self.slide_miniatures):
+            self.slide_miniatures[new_index].configure(border_color="cyan")
 
     def _create_main_tabs(self):
         """Cria o contêiner de abas e chama os métodos para construir a UI de cada aba."""
@@ -269,8 +303,7 @@ class MainWindow(ctk.CTk):
             "btn_prev": self.btn_prev_slide,
             "btn_next": self.btn_next_slide,
             "btn_projection": self.btn_projection_control,
-            "btn_clear": self.btn_clear_preview, # <-- ALTERE DE self.btn_clear_projection PARA self.btn_clear_preview
-            "btn_show_all": self.btn_show_all_slides
+            "btn_clear": self.btn_clear_preview,
         }
         self.presentation_controller = PresentationController(self, presentation_ui, self.config_manager)
 

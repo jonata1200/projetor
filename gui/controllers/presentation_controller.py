@@ -1,7 +1,6 @@
 from tkinter import messagebox
 from screeninfo import get_monitors
 from gui.projection_window import ProjectionWindow
-from gui.views import AllSlidesViewWindow
 
 class PresentationController:
     def __init__(self, master, ui_elements, config_manager):
@@ -23,7 +22,6 @@ class PresentationController:
         self.ui["btn_next"].configure(command=self.next_slide)
         self.ui["btn_projection"].configure(command=self.handle_projection_button)
         self.ui["btn_clear"].configure(command=self.clear_projection_content)
-        self.ui["btn_show_all"].configure(command=self.show_all_slides_view)
 
     def show_all_slides_view(self):
         """Abre a janela com a visualização de todos os slides."""
@@ -36,33 +34,44 @@ class PresentationController:
             # Atualiza a seleção caso tenha mudado
             self.all_slides_window.update_current_selection_highlight(self.current_index)
             return
-            
-        self.all_slides_window = AllSlidesViewWindow(
-            master=self.master,
-            slides_list=self.slides,
-            current_slide_index=self.current_index,
-            callback_goto_slide=self.go_to_slide
-        )
 
     def load_content(self, content_type, slides, content_id=None, start_index=0):
-        """
-        Ponto de entrada central para carregar novo conteúdo,
-        com a opção de iniciar em um slide específico.
-        """
         self.content_type = content_type
         self.slides = slides if slides else []
         self.content_id = content_id
         
         if self.slides:
-            # --- MUDANÇA AQUI ---
-            # Define o índice inicial, garantindo que seja um valor válido.
             self.current_index = start_index if 0 <= start_index < len(self.slides) else 0
             self.update_slide_view()
+            # Constrói a grade de miniaturas
+            self.master.build_all_slides_grid(self.slides, self.current_index)
         else:
             self.current_index = -1
             self.clear_slide_view()
+            self.master.build_all_slides_grid([], -1) # Limpa a grade também
         
         self.update_controls_state()
+
+    def next_slide(self):
+        if self.slides and self.current_index < len(self.slides) - 1:
+            old_index = self.current_index
+            self.current_index += 1
+            self.update_slide_view()
+            self.master.update_miniature_highlight(old_index, self.current_index)
+
+    def prev_slide(self):
+        if self.slides and self.current_index > 0:
+            old_index = self.current_index
+            self.current_index -= 1
+            self.update_slide_view()
+            self.master.update_miniature_highlight(old_index, self.current_index)
+
+    def go_to_slide(self, index):
+        if self.slides and 0 <= index < len(self.slides):
+            old_index = self.current_index
+            self.current_index = index
+            self.update_slide_view()
+            self.master.update_miniature_highlight(old_index, self.current_index)
 
     def update_slide_view(self): # Removido o argumento 'force_projection_update'
         if 0 <= self.current_index < len(self.slides):
@@ -96,21 +105,6 @@ class PresentationController:
         self.ui["indicator_label"].configure(text="- / -")
         if self.projection_window and self.projection_window.winfo_exists():
             self.projection_window.clear_content()
-
-    def next_slide(self):     
-        if self.slides and self.current_index < len(self.slides) - 1:
-            self.current_index += 1
-            self.update_slide_view()
-
-    def prev_slide(self):
-        if self.slides and self.current_index > 0:
-            self.current_index -= 1
-            self.update_slide_view()
-
-    def go_to_slide(self, index):
-        if self.slides and 0 <= index < len(self.slides):
-            self.current_index = index
-            self.update_slide_view()
 
     def update_controls_state(self):
         has_slides = bool(self.slides)
