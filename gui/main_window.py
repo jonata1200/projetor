@@ -85,7 +85,6 @@ class MainWindow(ctk.CTk):
 
         tab_single.grid_rowconfigure(0, weight=1); tab_single.grid_columnconfigure(0, weight=1)
         
-        # --- ALTERAÇÃO 1: MANTEMOS UMA REFERÊNCIA AO FRAME DA PRÉ-VISUALIZAÇÃO ---
         # A cor de fundo será aplicada a este frame.
         self.preview_frame = ctk.CTkFrame(tab_single, fg_color=("gray90", "gray20"))
         self.preview_frame.grid(row=0, column=0, sticky="nsew")
@@ -93,10 +92,14 @@ class MainWindow(ctk.CTk):
         
         self.slide_preview_label = ctk.CTkLabel(self.preview_frame, text="", font=ctk.CTkFont(size=30, weight="bold"), justify=ctk.CENTER)
         self.slide_preview_label.place(relx=0.5, rely=0.5, anchor=ctk.CENTER)
-        self.preview_frame.bind("<Configure>", lambda e: self.slide_preview_label.configure(wraplength=e.width * 0.95))
+        
+        # O bind para o wraplength agora vai no label, mas a lógica de fonte irá para o controller
+        self.preview_frame.bind("<Configure>", self._on_preview_resize)
 
-        # --- ALTERAÇÃO 2: ADICIONAMOS A BARRA DE COR DA ANIMAÇÃO ---
-        # Este pequeno frame na parte inferior mostrará a cor da animação.
+        # --- ALTERAÇÃO 1: ADICIONAMOS O NOVO LABEL INDICADOR DE ANIMAÇÃO ---
+        self.animation_text_indicator = ctk.CTkLabel(self.preview_frame, text="", font=ctk.CTkFont(size=12), text_color="gray")
+        self.animation_text_indicator.place(relx=0.02, rely=0.03) # Posiciona no canto superior esquerdo
+
         self.animation_color_indicator = ctk.CTkFrame(self.preview_frame, height=5, fg_color="transparent")
         self.animation_color_indicator.pack(side="bottom", fill="x", padx=5, pady=5)
         
@@ -301,13 +304,26 @@ class MainWindow(ctk.CTk):
         self.btn_add_to_playlist_bible = ctk.CTkButton(bottom_frame, text="Adicionar à Ordem", fg_color="sea green", hover_color="dark sea green")
         self.btn_add_to_playlist_bible.grid(row=0, column=1, padx=(5,0), sticky="ew")
 
+    # --- ALTERAÇÃO 2: NOVO MÉTODO PARA CHAMAR O CONTROLADOR QUANDO A JANELA REDIMENSIONA ---
+    def _on_preview_resize(self, event):
+        """
+        Quando a pré-visualização muda de tamanho, atualiza o wraplength e
+        avisa o controlador para recalcular o tamanho da fonte.
+        """
+        # Atualiza a quebra de linha do texto
+        self.slide_preview_label.configure(wraplength=event.width * 0.95)
+        # Chama o método do controlador para ajustar a fonte
+        if hasattr(self, 'presentation_controller'):
+            self.presentation_controller.update_preview_font_size(event.height)
+
     def _init_controllers(self):
         """Agrupa os widgets e instancia os controladores, conectando-os."""
-        # --- ALTERAÇÃO 3: PASSAMOS OS NOVOS WIDGETS PARA O CONTROLADOR ---
         presentation_ui = {
             "preview_label": self.slide_preview_label,
-            "preview_frame": self.preview_frame, # Referência para o fundo
-            "animation_indicator": self.animation_color_indicator, # Referência para a barra de cor
+            "preview_frame": self.preview_frame,
+            "animation_indicator": self.animation_color_indicator,
+            # --- ALTERAÇÃO 3: PASSA O NOVO LABEL PARA O CONTROLADOR ---
+            "animation_text_indicator": self.animation_text_indicator,
             "indicator_label": self.slide_indicator_label,
             "btn_prev": self.btn_prev_slide,
             "btn_next": self.btn_next_slide,

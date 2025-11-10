@@ -15,12 +15,10 @@ class PresentationController:
         self.content_type = None
         self.content_id = None
 
-        # Cores padrão para o estado "limpo" da pré-visualização
         self.default_preview_bg = self.ui["preview_frame"].cget("fg_color")
         self.default_preview_fg = ctk.ThemeManager.theme["CTkLabel"]["text_color"]
 
         self._setup_callbacks()
-        # Inicializa a pré-visualização com o estilo padrão
         self._update_preview_style()
 
     def _setup_callbacks(self):
@@ -66,22 +64,33 @@ class PresentationController:
             self.ui["preview_frame"].configure(fg_color=self.default_preview_bg)
             self.ui["preview_label"].configure(text_color=self.default_preview_fg)
             self.ui["animation_indicator"].configure(fg_color="transparent")
+            # Limpa o indicador de texto da animação
+            self.ui["animation_text_indicator"].configure(text="")
             return
 
         style_config = self._get_style_config_for_current_content()
 
         self.ui["preview_frame"].configure(fg_color=style_config['bg_color'])
-        self.ui["preview_label"].configure(
-            text_color=style_config['font_color'],
-            font=ctk.CTkFont(size=int(style_config['font_size'])/2.5, weight="bold") # Ajustei para /2.5 para caber melhor
-        )
+        self.ui["preview_label"].configure(text_color=style_config['font_color'])
         
         anim_type = style_config.get('animation_type', 'Nenhuma')
+        anim_text_map = {
+            "Neve": "❄️ Neve Ativa",
+            "Partículas Flutuantes": "✨ Partículas Ativas"
+        }
+        # --- ALTERAÇÃO 1: ATUALIZA O INDICADOR DE TEXTO DA ANIMAÇÃO ---
+        self.ui["animation_text_indicator"].configure(text=anim_text_map.get(anim_type, ""))
+        
         if anim_type != 'Nenhuma':
             self.ui["animation_indicator"].configure(fg_color=style_config['animation_color'])
         else:
             self.ui["animation_indicator"].configure(fg_color="transparent")
-            
+        
+        # Força o recálculo da fonte com base no tamanho atual
+        current_height = self.ui["preview_frame"].winfo_height()
+        if current_height > 1: # Garante que o widget já tenha sido desenhado
+            self.update_preview_font_size(current_height)
+
     def _get_style_config_for_current_content(self):
         content_map = {"music": "Projection_Music", "bible": "Projection_Bible", "text": "Projection_Text"}
         section_name = content_map.get(self.content_type, "Projection_Music")
@@ -99,6 +108,23 @@ class PresentationController:
         if self.projection_window and self.projection_window.winfo_exists():
             self._apply_style_to_projection_window()
 
+    # --- ALTERAÇÃO 2: NOVO MÉTODO PARA A FONTE PROPORCIONAL ---
+    def update_preview_font_size(self, current_height):
+        """
+        Calcula e aplica um tamanho de fonte proporcional à altura do painel de pré-visualização.
+        """
+        if current_height <= 1: return # Evita cálculos se o widget não for visível
+
+        # Fator de proporção: um valor maior resulta em fonte menor.
+        # 12 a 15 geralmente funcionam bem.
+        PROPORTION_FACTOR = 14
+        
+        # Calcula o novo tamanho, garantindo um tamanho mínimo de 8.
+        new_size = max(8, int(current_height / PROPORTION_FACTOR))
+        
+        # Aplica a nova fonte ao label de pré-visualização
+        self.ui["preview_label"].configure(font=ctk.CTkFont(size=new_size, weight="bold"))
+
     def update_slide_view(self):
         if 0 <= self.current_index < len(self.slides):
             slide_text = self.slides[self.current_index]
@@ -109,6 +135,19 @@ class PresentationController:
                 self.projection_window.update_content(slide_text)
         else:
             self.clear_slide_view()
+
+    def clear_projection_content(self):
+        self.slides = []
+        self.current_index = -1
+        self.content_type = None 
+        self.content_id = None
+        self.clear_slide_view() 
+        self.update_controls_state() 
+        if self.projection_window and self.projection_window.winfo_exists():
+            self.projection_window.clear_content()
+        if hasattr(self.master, 'build_all_slides_grid'):
+            self.master.build_all_slides_grid([], -1)
+        self._update_preview_style()
 
     def next_slide(self):
         if self.slides and self.current_index < len(self.slides) - 1:
@@ -192,19 +231,6 @@ class PresentationController:
         is_open = self.projection_window and self.projection_window.winfo_exists()
         text = "Fechar Projeção" if is_open else "Abrir Projeção"
         self.ui["btn_projection"].configure(text=text)
-
-    def clear_projection_content(self):
-        self.slides = []
-        self.current_index = -1
-        self.content_type = None 
-        self.content_id = None
-        self.clear_slide_view() 
-        self.update_controls_state() 
-        if self.projection_window and self.projection_window.winfo_exists():
-            self.projection_window.clear_content()
-        if hasattr(self.master, 'build_all_slides_grid'):
-            self.master.build_all_slides_grid([], -1)
-        self._update_preview_style()
         
     def on_closing(self):
         self.close_projection_window()
