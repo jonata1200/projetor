@@ -27,13 +27,15 @@ class BaseAnimation:
         raise NotImplementedError
 
 # =============================================================================
-# Animação 1: Neve (Já estava correta)
+# Animação 1: Neve
 # =============================================================================
 class SnowFlake:
     def __init__(self, w, h):
         self.w, self.h = w, h
         self.x, self.y = random.randint(0, self.w), random.randint(-self.h, 0)
-        self.size = random.randint(2, 5)
+        # --- ALTERAÇÃO 1 AQUI ---
+        # Antes: self.size = random.randint(2, 5)
+        self.size = random.randint(4, 9) # Flocos de neve visivelmente maiores
         self.speed = random.uniform(0.5, 2.0)
         self.drift = random.uniform(-0.3, 0.3)
     def move(self):
@@ -62,7 +64,9 @@ class FloatingParticle:
     def __init__(self, w, h):
         self.w, self.h = w, h
         self.x, self.y = random.randint(0, self.w), random.randint(0, self.h)
-        self.size = random.randint(2, 4)
+        # --- ALTERAÇÃO 2 AQUI ---
+        # Antes: self.size = random.randint(2, 4)
+        self.size = random.randint(3, 7) # Partículas maiores
         self.speed = random.uniform(0.3, 1.2)
         self.drift = random.uniform(-0.2, 0.2)
         self.alpha = random.uniform(0.1, 0.8)
@@ -79,13 +83,9 @@ class FloatingParticlesAnimation(BaseAnimation):
         
         color_string = getattr(self, 'particle_color', 'white')
         try:
-            # --- CORREÇÃO AQUI: USA O MÉTODO ROBUSTO winfo_rgb ---
-            # Ele converte qualquer cor ('white', '#DDDDDD', etc.) para RGB.
-            # Retorna valores de 16 bits (0-65535), então dividimos por 256 para obter 8 bits (0-255).
             rgb_16bit = self.canvas.winfo_rgb(color_string)
             r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
         except Exception:
-            # Fallback se a cor for inválida
             r, g, b = 255, 255, 255
 
         for p in self.particles:
@@ -109,7 +109,9 @@ class StarParticle:
     def reset(self):
         self.x = random.randint(0, self.w)
         self.y = random.randint(0, self.h)
-        self.size = random.uniform(1, 3)
+        # --- ALTERAÇÃO 3 AQUI ---
+        # Antes: self.size = random.uniform(1, 3)
+        self.size = random.uniform(3, 7) # Estrelas mais visíveis
         self.max_brightness = random.uniform(0.4, 1.0)
         self.current_brightness = 0.0
         self.state = "brightening"
@@ -139,7 +141,6 @@ class BlinkingStarsAnimation(BaseAnimation):
         
         color_string = getattr(self, 'particle_color', 'white')
         try:
-            # --- CORREÇÃO AQUI: USA O MÉTODO ROBUSTO winfo_rgb ---
             rgb_16bit = self.canvas.winfo_rgb(color_string)
             r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
         except Exception:
