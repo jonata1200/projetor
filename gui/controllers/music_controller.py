@@ -47,6 +47,7 @@ class MusicController:
         """
         Cria todos os widgets de música UMA ÚNICA VEZ e os armazena.
         Isso é chamado apenas ao iniciar ou após adicionar/remover uma música.
+        Armazena também a letra completa para permitir busca por trechos da letra.
         """
         # Limpa os widgets antigos
         for widget in self.view["scroll_frame"].winfo_children():
@@ -60,6 +61,10 @@ class MusicController:
         default_text_color = ctk.ThemeManager.theme["CTkLabel"]["text_color"]
 
         for music_id, display_name in all_music:
+            # Busca a música completa para obter a letra
+            music = self.manager.get_music_by_id(music_id)
+            lyrics_full = music.get('lyrics_full', '').lower() if music else ''
+            
             song_button = ctk.CTkButton(
                 self.view["scroll_frame"],
                 text=display_name,
@@ -69,8 +74,12 @@ class MusicController:
                 hover=True,
                 command=lambda mid=music_id: self.on_music_select(mid)
             )
-            # Armazena o botão e seu texto para a busca
-            self.music_widgets[music_id] = {'widget': song_button, 'text': display_name.lower()}
+            # Armazena o botão, texto do display e letra completa para a busca
+            self.music_widgets[music_id] = {
+                'widget': song_button, 
+                'text': display_name.lower(),
+                'lyrics': lyrics_full
+            }
             song_button.pack(fill="x", padx=5, pady=2)
 
         # Recria o label de "nenhum resultado" para garantir que ele exista
@@ -79,6 +88,7 @@ class MusicController:
     def filter_music_list(self, event=None):
         """
         Filtra a lista de músicas escondendo/mostrando os widgets existentes.
+        Busca tanto no título/artista quanto na letra completa da música.
         Não destrói nem recria nada.
         """
         filter_term = self.view["search_entry"].get().lower().strip()
@@ -89,9 +99,11 @@ class MusicController:
 
         for music_id, data in self.music_widgets.items():
             widget = data['widget']
-            text = data['text']
+            display_text = data['text']  # Título - Artista
+            lyrics = data.get('lyrics', '')  # Letra completa
             
-            if filter_term in text:
+            # Busca no título/artista OU na letra
+            if filter_term in display_text or (filter_term and filter_term in lyrics):
                 widget.pack(fill="x", padx=5, pady=2)
                 found_any = True
             else:
