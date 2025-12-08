@@ -2,8 +2,9 @@ import customtkinter as ctk
 from tkinter import messagebox
 from tkinter.colorchooser import askcolor
 import logging
+from typing import Optional, Dict
 from core.exceptions import ConfigSaveError, ValidationError
-from core.validators import validate_string
+from core.validators import validate_string, validate_color
 from gui.utils.dialog_utils import center_dialog
 
 logger = logging.getLogger(__name__)
@@ -154,18 +155,11 @@ class SettingsDialog(ctk.CTkToplevel):
         ctk.CTkEntry(frame_bg, textvariable=vars_dict['bg_color']).grid(row=0, column=0, sticky="ew")
         ctk.CTkButton(frame_bg, text="Escolher...", width=80, command=lambda v=vars_dict['bg_color']: self._pick_color(v)).grid(row=0, column=1, padx=(10,0))
         
-        # Animação de Fundo
-        ctk.CTkLabel(tab, text="Animação de Fundo:").grid(row=3, column=0, padx=10, pady=5, sticky="w")
-        animation_options = ["Nenhuma", "Neve", "Partículas Flutuantes", "Estrelas Piscando"]
-        vars_dict['animation_type'] = ctk.StringVar(value=self.config_manager.get_setting(section_name, 'animation_type'))
-        ctk.CTkOptionMenu(tab, variable=vars_dict['animation_type'], values=animation_options).grid(row=3, column=1, padx=10, pady=5, sticky="ew")
-        
-        # Cor da Animação
-        ctk.CTkLabel(tab, text="Cor da Animação:").grid(row=4, column=0, padx=10, pady=5, sticky="w")
-        frame_ac = ctk.CTkFrame(tab, fg_color="transparent"); frame_ac.grid(row=4, column=1, padx=10, pady=5, sticky="ew"); frame_ac.grid_columnconfigure(0, weight=1)
-        vars_dict['animation_color'] = ctk.StringVar(value=self.config_manager.get_setting(section_name, 'animation_color'))
-        ctk.CTkEntry(frame_ac, textvariable=vars_dict['animation_color']).grid(row=0, column=0, sticky="ew")
-        ctk.CTkButton(frame_ac, text="Escolher...", width=80, command=lambda v=vars_dict['animation_color']: self._pick_color(v)).grid(row=0, column=1, padx=(10,0))
+        # Animação removida de todas as configurações
+        # A animação agora é configurada apenas na Ordem de Culto para músicas
+        info_label = ctk.CTkLabel(tab, text="💡 A animação é configurada individualmente\nna Ordem de Culto ao adicionar cada música.", 
+                                 text_color="gray", justify="left")
+        info_label.grid(row=3, column=0, columnspan=2, padx=10, pady=10, sticky="w")
 
         self.style_vars[section_name] = vars_dict
 
@@ -192,11 +186,15 @@ class SettingsDialog(ctk.CTkToplevel):
             font_size_val = vars_dict['font_size'].get()
             if not (font_size_val.isdigit() and int(font_size_val) > 0):
                 messagebox.showwarning("Valor Inválido",
-                                       f"O tamanho da fonte na aba '{section_name}' deve ser um número positivo.",
-                                       parent=self)
+                                      f"O tamanho da fonte na aba '{section_name}' deve ser um número positivo.",
+                                      parent=self)
                 return False # Impede o salvamento se a validação falhar
 
             for key, var in vars_dict.items():
+                # Não salva animação (animação é configurada apenas na Ordem de Culto)
+                if key in ('animation_type', 'animation_color'):
+                    continue
+                
                 # Se qualquer chamada ao set_setting falhar, a função inteira retorna False.
                 try:
                     if not self.config_manager.set_setting(section_name, key, var.get()):
@@ -266,3 +264,91 @@ class ShortcutsHelpDialog(ctk.CTkToplevel):
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         self.after(50, lambda: center_dialog(self, self.master)) # Chama a centralização após a janela ser desenhada
         self.focus_force()
+
+
+# =============================================================================
+# Diálogo para Selecionar Animação de Música
+# =============================================================================
+
+class AnimationSelectionDialog(ctk.CTkToplevel):
+    """
+    Janela de diálogo para selecionar animação ao adicionar música à playlist.
+    """
+    def __init__(self, master, default_animation_type: str = "Nenhuma", default_animation_color: str = "#DDDDDD"):
+        super().__init__(master)
+        self.transient(master)
+        self.grab_set()
+        self.title("Selecionar Animação")
+        
+        self.geometry("400x250")
+        self.resizable(False, False)
+        
+        self.result = None
+        
+        self.grid_columnconfigure(1, weight=1)
+        
+        # Título
+        ctk.CTkLabel(self, text="Configure a animação para esta música:", 
+                    font=ctk.CTkFont(size=14, weight="bold")).grid(row=0, column=0, columnspan=2, padx=20, pady=(20, 10))
+        
+        # Tipo de Animação
+        ctk.CTkLabel(self, text="Tipo de Animação:").grid(row=1, column=0, padx=20, pady=10, sticky="w")
+        animation_options = ["Nenhuma", "Neve", "Partículas Flutuantes", "Estrelas Piscando"]
+        self.animation_type_var = ctk.StringVar(value=default_animation_type)
+        animation_menu = ctk.CTkOptionMenu(self, variable=self.animation_type_var, values=animation_options)
+        animation_menu.grid(row=1, column=1, padx=20, pady=10, sticky="ew")
+        
+        # Cor da Animação
+        ctk.CTkLabel(self, text="Cor da Animação:").grid(row=2, column=0, padx=20, pady=10, sticky="w")
+        color_frame = ctk.CTkFrame(self, fg_color="transparent")
+        color_frame.grid(row=2, column=1, padx=20, pady=10, sticky="ew")
+        color_frame.grid_columnconfigure(0, weight=1)
+        
+        self.animation_color_var = ctk.StringVar(value=default_animation_color)
+        color_entry = ctk.CTkEntry(color_frame, textvariable=self.animation_color_var)
+        color_entry.grid(row=0, column=0, sticky="ew", padx=(0, 10))
+        
+        def pick_color():
+            color = askcolor(initialcolor=self.animation_color_var.get())[1]
+            if color:
+                self.animation_color_var.set(color)
+        
+        ctk.CTkButton(color_frame, text="Escolher...", width=80, command=pick_color).grid(row=0, column=1)
+        
+        # Botões
+        button_frame = ctk.CTkFrame(self, fg_color="transparent")
+        button_frame.grid(row=3, column=0, columnspan=2, pady=20)
+        
+        ctk.CTkButton(button_frame, text="Confirmar", command=self.on_confirm, width=120).pack(side="left", padx=10)
+        ctk.CTkButton(button_frame, text="Cancelar", command=self.on_cancel, width=120, fg_color="gray", hover_color="gray70").pack(side="left", padx=10)
+        
+        self.protocol("WM_DELETE_WINDOW", self.on_cancel)
+        self.after(50, lambda: center_dialog(self, self.master))
+        self.focus_force()
+        
+        # Focar no primeiro campo
+        animation_menu.focus_set()
+    
+    def on_confirm(self):
+        """Confirma a seleção e retorna os dados."""
+        try:
+            animation_type = self.animation_type_var.get()
+            animation_color = validate_color(self.animation_color_var.get())
+            
+            self.result = {
+                'animation_type': animation_type,
+                'animation_color': animation_color
+            }
+            self.destroy()
+        except ValidationError as e:
+            messagebox.showerror("Erro de Validação", f"Cor inválida: {e}", parent=self)
+    
+    def on_cancel(self):
+        """Cancela a seleção."""
+        self.result = None
+        self.destroy()
+    
+    def get_data(self) -> Optional[Dict[str, str]]:
+        """Retorna os dados selecionados ou None se cancelado."""
+        self.wait_window()
+        return self.result

@@ -14,6 +14,7 @@ class PresentationController:
         self.current_index = -1
         self.content_type = None
         self.content_id = None
+        self.item_animation_data = None  # Animação específica do item (apenas para músicas)
 
         self.default_preview_bg = self.ui["preview_frame"].cget("fg_color")
         self.default_preview_fg = ctk.ThemeManager.theme["CTkLabel"]["text_color"]
@@ -27,17 +28,30 @@ class PresentationController:
         self.ui["btn_projection"].configure(command=self.handle_projection_button)
         self.ui["btn_clear"].configure(command=self.clear_projection_content)
 
-    def load_content(self, content_type, slides, content_id=None, start_index=0):
+    def load_content(self, content_type, slides, content_id=None, start_index=0, animation_data=None):
+        """
+        Carrega conteúdo para exibição.
+        
+        Args:
+            content_type: Tipo de conteúdo ('music', 'bible', 'text')
+            slides: Lista de slides
+            content_id: ID do conteúdo (opcional)
+            start_index: Índice inicial do slide (padrão: 0)
+            animation_data: Dados de animação do item (apenas para músicas, opcional)
+        """
         apply_new_style = (self.content_type != content_type)
         self.content_type = content_type
         
         self.slides = slides if slides else []
         self.content_id = content_id
+        # Armazena animação do item se for música
+        self.item_animation_data = animation_data if content_type == 'music' else None
         
         if self.slides:
             self.current_index = start_index if 0 <= start_index < len(self.slides) else 0
             
-            if self.projection_window and self.projection_window.winfo_exists() and apply_new_style:
+            # Sempre aplica o estilo quando o conteúdo muda (especialmente para animação)
+            if self.projection_window and self.projection_window.winfo_exists():
                 self._apply_style_to_projection_window()
             
             self.update_slide_view()
@@ -96,13 +110,28 @@ class PresentationController:
         content_map = {"music": "Projection_Music", "bible": "Projection_Bible", "text": "Projection_Text"}
         section_name = content_map.get(self.content_type, "Projection_Music")
 
-        return {
+        config = {
             'font_size': self.config_manager.get_int_setting(section_name, 'font_size', 60),
             'font_color': self.config_manager.get_setting(section_name, 'font_color', 'white'),
             'bg_color': self.config_manager.get_setting(section_name, 'bg_color', 'black'),
-            'animation_type': self.config_manager.get_setting(section_name, 'animation_type', 'Nenhuma'),
-            'animation_color': self.config_manager.get_setting(section_name, 'animation_color', 'white')
+            'animation_type': 'Nenhuma',  # Padrão: nenhuma animação
+            'animation_color': '#DDDDDD'  # Cor padrão (não usada se animation_type for 'Nenhuma')
         }
+        
+        # Para músicas, usa a animação do item (se houver)
+        # A animação agora é configurada apenas na Ordem de Culto
+        if self.content_type == 'music':
+            if self.item_animation_data:
+                config['animation_type'] = self.item_animation_data.get('animation_type', 'Nenhuma')
+                config['animation_color'] = self.item_animation_data.get('animation_color', '#DDDDDD')
+            else:
+                # Item antigo sem animação - usa "Nenhuma" como padrão
+                config['animation_type'] = 'Nenhuma'
+                config['animation_color'] = '#DDDDDD'
+        
+        # Para Bíblia e Texto, sempre usa "Nenhuma" (animação removida das configurações)
+        
+        return config
 
     def refresh_styles(self):
         self._update_preview_style()

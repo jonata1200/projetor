@@ -170,6 +170,9 @@ class MainWindow(ctk.CTk):
         self.btn_playlist_down = ctk.CTkButton(actions_frame, text="Descer ▼", state="disabled", width=100)
         self.btn_playlist_down.pack(side="left", padx=5, pady=5)
         
+        self.btn_playlist_edit_animation = ctk.CTkButton(actions_frame, text="Editar Animação", state="disabled", width=120)
+        self.btn_playlist_edit_animation.pack(side="left", padx=5, pady=5)
+        
         self.btn_playlist_clear = ctk.CTkButton(actions_frame, text="Limpar Tudo")
         self.btn_playlist_clear.pack(side="right", padx=5, pady=5)
 
@@ -296,6 +299,7 @@ class MainWindow(ctk.CTk):
             "btn_remove": self.btn_playlist_remove,
             "btn_up": self.btn_playlist_up,
             "btn_down": self.btn_playlist_down,
+            "btn_edit_animation": self.btn_playlist_edit_animation,
             "btn_clear": self.btn_playlist_clear
         }
         self.playlist_controller = PlaylistController(

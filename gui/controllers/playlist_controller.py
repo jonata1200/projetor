@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from tkinter import messagebox
+from gui.dialogs import AnimationSelectionDialog
 
 class PlaylistController:
     """
@@ -25,20 +26,35 @@ class PlaylistController:
         self.view["btn_remove"].configure(command=self.remove_selected_item)
         self.view["btn_up"].configure(command=lambda: self.move_selected_item(-1))
         self.view["btn_down"].configure(command=lambda: self.move_selected_item(1))
+        self.view["btn_edit_animation"].configure(command=self.edit_animation)
         self.view["btn_clear"].configure(command=self.clear_playlist)
 
     def add_music_item(self, music_id, music_manager):
-        """Adiciona uma música à playlist."""
+        """Adiciona uma música à playlist com seleção de animação."""
         if not music_id:
             messagebox.showwarning("Nenhuma Música", "Selecione uma música para adicionar.", parent=self.master)
             return
         
         music = music_manager.get_music_by_id(music_id)
         if music:
+            # Mostra dialog para selecionar animação
+            animation_dialog = AnimationSelectionDialog(
+                self.master,
+                default_animation_type="Neve",
+                default_animation_color="#DDDDDD"
+            )
+            animation_data = animation_dialog.get_data()
+            
+            # Se cancelou o dialog, não adiciona a música
+            if animation_data is None:
+                return
+            
             item = {
                 "type": "music",
                 "title": f"{music['title']} - {music['artist']}",
-                "slides": music['slides']
+                "slides": music['slides'],
+                "animation_type": animation_data['animation_type'],
+                "animation_color": animation_data['animation_color']
             }
             self.playlist.append(item)
             self._render_playlist()
@@ -101,9 +117,18 @@ class PlaylistController:
         self.item_widgets[self.selected_index].configure(fg_color=self.selected_color)
         
         selected_item = self.playlist[self.selected_index]
+        # Passa a animação do item se for música
+        animation_data = None
+        if selected_item['type'] == 'music':
+            animation_data = {
+                'animation_type': selected_item.get('animation_type', 'Nenhuma'),
+                'animation_color': selected_item.get('animation_color', '#DDDDDD')
+            }
+        
         self.presentation_controller.load_content(
             selected_item['type'],
-            selected_item['slides']
+            selected_item['slides'],
+            animation_data=animation_data
         )
         self._update_buttons_state()
         
@@ -136,6 +161,37 @@ class PlaylistController:
             self.presentation_controller.clear_projection_content()
             self._render_playlist()
 
+    def edit_animation(self):
+        """Edita a animação do item selecionado (apenas para músicas)."""
+        if self.selected_index == -1:
+            return
+        
+        selected_item = self.playlist[self.selected_index]
+        if selected_item['type'] != 'music':
+            messagebox.showinfo("Informação", "A animação só pode ser configurada para músicas.", parent=self.master)
+            return
+        
+        # Mostra dialog com valores atuais
+        current_animation_type = selected_item.get('animation_type', 'Nenhuma')
+        current_animation_color = selected_item.get('animation_color', '#DDDDDD')
+        
+        animation_dialog = AnimationSelectionDialog(
+            self.master,
+            default_animation_type=current_animation_type,
+            default_animation_color=current_animation_color
+        )
+        animation_data = animation_dialog.get_data()
+        
+        if animation_data:
+            # Atualiza a animação do item
+            selected_item['animation_type'] = animation_data['animation_type']
+            selected_item['animation_color'] = animation_data['animation_color']
+            
+            # Atualiza a projeção reaplicando o estilo
+            self.on_item_select(self.selected_index)
+            
+            messagebox.showinfo("Sucesso", "Animação atualizada!", parent=self.master)
+    
     def _update_buttons_state(self):
         """Habilita ou desabilita os botões de gerenciamento."""
         is_item_selected = self.selected_index != -1
@@ -144,3 +200,11 @@ class PlaylistController:
         self.view["btn_remove"].configure(state=state)
         self.view["btn_up"].configure(state=state)
         self.view["btn_down"].configure(state=state)
+        
+        # Botão de editar animação só funciona para músicas
+        if is_item_selected:
+            selected_item = self.playlist[self.selected_index]
+            is_music = selected_item['type'] == 'music'
+            self.view["btn_edit_animation"].configure(state="normal" if is_music else "disabled")
+        else:
+            self.view["btn_edit_animation"].configure(state="disabled")
