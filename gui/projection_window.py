@@ -14,7 +14,7 @@ ANIMATION_DEFAULT_COLORS = {
     "Espiral": "#FFD700",             # Dourado
     "Estrelas Piscando": "#FFFAF0",   # Branco creme
     "Neve": "#FFFFFF",                # Branco puro
-    "Partículas Flutuantes": "#E0E0E0", # Cinza claro
+    "Partículas Flutuantes": "#FF69B4", # Rosa vibrante
     "Partículas Pulsantes": "#32CD32",  # Verde lime
     "Pétalas": "#FFB6C1",             # Rosa claro
     "Poças de Luz": "#4169E1"         # Azul royal
@@ -52,7 +52,18 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.main_canvas = tk.Canvas(self, bg=self.bg_color, highlightthickness=0)
         self.main_canvas.pack(fill="both", expand=True)
         
-        self.projection_label = ctk.CTkLabel(self.main_canvas, text="", font=ctk.CTkFont(size=60, weight="bold"), text_color=self.font_color, fg_color="transparent", justify=ctk.CENTER)
+        # Usa tkinter.Label nativo para transparência verdadeira (sem preenchimento preto)
+        self.projection_label = tk.Label(
+            self.main_canvas, 
+            text="", 
+            font=("Arial", 60, "bold"), 
+            fg=self.font_color, 
+            bg="",  # Background vazio para transparência verdadeira
+            justify=tk.CENTER,
+            anchor="center",
+            bd=0,  # Sem borda
+            highlightthickness=0  # Sem highlight
+        )
         self.label_window_id = self.main_canvas.create_window(0, 0, window=self.projection_label, anchor="center")
         
         self.animation = None
@@ -109,10 +120,11 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.bg_color = style_config.get('bg_color')
         self.font_color = style_config.get('font_color')
         self.main_canvas.configure(bg=self.bg_color)
+        font_size = int(style_config.get('font_size'))
         self.projection_label.configure(
-            font=ctk.CTkFont(size=int(style_config.get('font_size')), weight="bold"),
-            text_color=self.font_color,
-            fg_color="transparent"  # Transparente para não bloquear a animação
+            font=("Arial", font_size, "bold"),
+            fg=self.font_color,
+            bg=""  # Background vazio mantém transparência verdadeira
         )
 
     def _initialize_layout(self):
@@ -175,7 +187,7 @@ class ProjectionWindow(ctk.CTkToplevel):
         new_color = f"#{new_r:02x}{new_g:02x}{new_b:02x}"
         
         if self.projection_label.winfo_exists():
-            self.projection_label.configure(text_color=new_color)
+            self.projection_label.configure(fg=new_color)
         
         self._after_id_fade = self.after(
             self.FADE_DELAY, 
