@@ -2,6 +2,11 @@ import customtkinter as ctk
 from tkinter import messagebox
 from gui.dialogs import AddEditSongDialog
 import threading
+import logging
+from core.exceptions import MusicDatabaseError, ScraperError, ValidationError
+from core.validators import validate_url
+
+logger = logging.getLogger(__name__)
 
 class MusicController:
     """
@@ -123,16 +128,21 @@ class MusicController:
         dialog = AddEditSongDialog(self.master, dialog_title="Adicionar Nova Música")
         song_data = dialog.get_data()
         if song_data:
-            added = self.manager.add_music(song_data["title"], song_data["artist"], song_data["lyrics_full"])
-            if added:
-                messagebox.showinfo("Sucesso", "Música adicionada!", parent=self.master)
-                self.build_music_list()
-                self.filter_music_list()
-            else:
-                # --- FEEDBACK DE ERRO ---
+            try:
+                added = self.manager.add_music(song_data["title"], song_data["artist"], song_data["lyrics_full"])
+                if added:
+                    messagebox.showinfo("Sucesso", "Música adicionada!", parent=self.master)
+                    self.build_music_list()
+                    self.filter_music_list()
+            except ValidationError as e:
+                logger.warning(f"Erro de validação ao adicionar música: {e}")
+                messagebox.showerror("Erro de Validação", str(e), parent=self.master)
+            except MusicDatabaseError as e:
+                logger.error("Erro ao adicionar música", exc_info=True)
                 messagebox.showerror("Erro ao Salvar",
-                                     "Não foi possível salvar a nova música no arquivo 'music_db.json'.\n"
-                                     "Verifique as permissões de escrita na pasta do programa.", 
+                                     f"Não foi possível salvar a nova música no arquivo 'music_db.json'.\n"
+                                     f"Verifique as permissões de escrita na pasta do programa.\n\n"
+                                     f"Detalhes: {str(e)}", 
                                      parent=self.master)
 
     def show_edit_dialog(self):
@@ -143,26 +153,35 @@ class MusicController:
         dialog = AddEditSongDialog(self.master, dialog_title="Editar Música", song_data=song)
         updated_data = dialog.get_data()
         if updated_data:
-            success = self.manager.edit_music(self.current_song_id, updated_data["title"], updated_data["artist"], updated_data["lyrics_full"])
-            if success:
-                messagebox.showinfo("Sucesso", "Música atualizada!", parent=self.master)
-                self.build_music_list()
-                self.filter_music_list()
-                self.on_music_select(self.current_song_id)
-            else:
-                # --- FEEDBACK DE ERRO ---
+            try:
+                success = self.manager.edit_music(self.current_song_id, updated_data["title"], updated_data["artist"], updated_data["lyrics_full"])
+                if success:
+                    messagebox.showinfo("Sucesso", "Música atualizada!", parent=self.master)
+                    self.build_music_list()
+                    self.filter_music_list()
+                    self.on_music_select(self.current_song_id)
+            except ValidationError as e:
+                logger.warning(f"Erro de validação ao editar música: {e}")
+                messagebox.showerror("Erro de Validação", str(e), parent=self.master)
+            except MusicDatabaseError as e:
+                logger.error("Erro ao editar música", exc_info=True)
                 messagebox.showerror("Erro ao Salvar", 
-                                     "Não foi possível salvar as alterações no arquivo 'music_db.json'.\n"
-                                     "Verifique as permissões de escrita.", 
+                                     f"Não foi possível salvar as alterações no arquivo 'music_db.json'.\n"
+                                     f"Verifique as permissões de escrita.\n\n"
+                                     f"Detalhes: {str(e)}", 
                                      parent=self.master)
 
     def show_import_dialog(self):
         dialog = ctk.CTkInputDialog(text="Digite a URL completa da página da música no Letras.mus.br:", title="Importar Música por URL")
         song_url = dialog.get_input()
         if not song_url or not song_url.strip(): return
-        song_url = song_url.strip()
-        if not song_url.startswith("https://www.letras.mus.br/"):
-            messagebox.showerror("URL Inválida", "Por favor, insira uma URL válida do site Letras.mus.br.", parent=self.master)
+        
+        # Validar URL antes de processar (Fail Fast)
+        try:
+            song_url = validate_url(song_url.strip(), allowed_domains=['letras.mus.br'])
+        except ValidationError as e:
+            logger.warning(f"Erro de validação de URL: {e}")
+            messagebox.showerror("URL Inválida", str(e), parent=self.master)
             return
         
         thread = threading.Thread(target=self._threaded_import, args=(song_url,), daemon=True)
@@ -173,30 +192,50 @@ class MusicController:
         try:
             music_data = self.scraper.fetch_lyrics_from_url(song_url)
             self.master.after(0, self._on_import_finished, music_data)
+        except ValidationError as e:
+            logger.warning(f"Erro de validação ao importar música de {song_url}: {e}")
+            self.master.after(0, self._on_import_finished, None, e)
+        except ScraperError as e:
+            logger.error(f"Erro ao importar música de {song_url}", exc_info=True)
+            self.master.after(0, self._on_import_finished, None, e)
         except Exception as e:
+            logger.error(f"Erro inesperado ao importar música de {song_url}", exc_info=True)
             self.master.after(0, self._on_import_finished, None, e)
 
     def _on_import_finished(self, music_data, error=None):
         self.view["btn_import"].configure(state="normal", text="Importar (URL)")
         if error:
-            # --- FEEDBACK DE ERRO DE REDE ---
-            messagebox.showerror("Erro de Importação", f"Ocorreu um erro de rede ou na página da web:\n{error}", parent=self.master)
+            # --- FEEDBACK DE ERRO ---
+            if isinstance(error, ValidationError):
+                messagebox.showerror("Erro de Validação", 
+                                     f"URL inválida:\n{error}", 
+                                     parent=self.master)
+            elif isinstance(error, ScraperError):
+                messagebox.showerror("Erro de Importação", 
+                                     f"Ocorreu um erro ao importar a música:\n{error}", 
+                                     parent=self.master)
+            else:
+                messagebox.showerror("Erro de Importação", 
+                                     f"Ocorreu um erro inesperado:\n{error}", 
+                                     parent=self.master)
             return
         if music_data and music_data.get("lyrics_full"):
             title, artist = music_data.get("title", "Título Desconhecido"), music_data.get("artist", "Artista Desconhecido")
             if self.manager.is_duplicate(title, artist):
                 if not messagebox.askyesno("Música Existente", f"A música '{title}' por '{artist}' já parece existir. Deseja importá-la mesmo assim?", parent=self.master): return
             
-            added_song = self.manager.add_music(title, artist, music_data["lyrics_full"])
-            if added_song:
-                messagebox.showinfo("Importação Concluída", f"Música '{added_song['title']}' importada com sucesso!", parent=self.master)
-                self.build_music_list()
-                self.filter_music_list()
-            else:
-                # --- FEEDBACK DE ERRO AO SALVAR A MÚSICA IMPORTADA ---
+            try:
+                added_song = self.manager.add_music(title, artist, music_data["lyrics_full"])
+                if added_song:
+                    messagebox.showinfo("Importação Concluída", f"Música '{added_song['title']}' importada com sucesso!", parent=self.master)
+                    self.build_music_list()
+                    self.filter_music_list()
+            except MusicDatabaseError as e:
+                logger.error("Erro ao salvar música importada", exc_info=True)
                 messagebox.showerror("Erro ao Salvar", 
-                                     "A música foi importada, mas não foi possível salvá-la no arquivo 'music_db.json'.\n"
-                                     "Verifique as permissões de escrita.", 
+                                     f"A música foi importada, mas não foi possível salvá-la no arquivo 'music_db.json'.\n"
+                                     f"Verifique as permissões de escrita.\n\n"
+                                     f"Detalhes: {str(e)}", 
                                      parent=self.master)
         else:
             messagebox.showwarning("Falha na Importação", "Não foi possível encontrar a letra na URL fornecida. O site pode ter atualizado sua estrutura.", parent=self.master)
@@ -206,16 +245,18 @@ class MusicController:
         song = self.manager.get_music_by_id(self.current_song_id)
         if not song: return
         if messagebox.askyesno("Confirmar Exclusão", f"Tem certeza que deseja excluir '{song['title']}'?", icon="warning", parent=self.master):
-            if self.manager.delete_music(self.current_song_id):
-                messagebox.showinfo("Sucesso", "Música excluída.", parent=self.master)
-                self.on_content_selected("music", [], None)
-                self.build_music_list()
-                self.filter_music_list()
-            else:
-                # --- FEEDBACK DE ERRO ---
+            try:
+                if self.manager.delete_music(self.current_song_id):
+                    messagebox.showinfo("Sucesso", "Música excluída.", parent=self.master)
+                    self.on_content_selected("music", [], None)
+                    self.build_music_list()
+                    self.filter_music_list()
+            except MusicDatabaseError as e:
+                logger.error("Erro ao excluir música", exc_info=True)
                 messagebox.showerror("Erro ao Excluir", 
-                                     "Não foi possível salvar as alterações no arquivo 'music_db.json' após a exclusão.\n"
-                                     "A música não foi removida. Verifique as permissões de escrita.", 
+                                     f"Não foi possível salvar as alterações no arquivo 'music_db.json' após a exclusão.\n"
+                                     f"A música não foi removida. Verifique as permissões de escrita.\n\n"
+                                     f"Detalhes: {str(e)}", 
                                      parent=self.master)
     
     def add_to_playlist(self):

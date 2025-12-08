@@ -4,12 +4,32 @@ __pycache__/
 *$py.class
 
 # Ignora ambiente virtual (se houver)
+venv/
 .venv/
 .env/
 .env*/ 
 
 # Ignora arquivos temporários e logs
 *.log
+logs/
 *.tmp
 *.bak
+.DS_Store
+
+# Ignora arquivos de teste e cobertura
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+*.cover
+
+# Ignora arquivos do IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Ignora arquivos de sistema
+Thumbs.db
 .DS_Store

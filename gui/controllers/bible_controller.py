@@ -1,4 +1,9 @@
 import threading
+import logging
+from tkinter import messagebox
+from core.exceptions import BibleAPIError, ValidationError
+
+logger = logging.getLogger(__name__)
 
 class BibleController:
     def __init__(self, master, view_widgets, bible_manager, on_content_selected_callback, playlist_controller):
@@ -80,11 +85,25 @@ class BibleController:
 
     def _threaded_fetch_verses_for_menu(self, version_abbrev, book_abbrev, chapter_num):
         # Busca os dados em uma thread
-        verses_data = self.manager.api_client.get_chapter_verses(version_abbrev, book_abbrev, chapter_num)
-        # Atualiza a UI na thread principal
-        self.master.after(0, self._populate_verse_menu, verses_data)
+        try:
+            verses_data = self.manager.api_client.get_chapter_verses(version_abbrev, book_abbrev, chapter_num)
+            # Atualiza a UI na thread principal
+            self.master.after(0, self._populate_verse_menu, verses_data)
+        except BibleAPIError as e:
+            logger.error(f"Erro ao buscar versículos - versão: {version_abbrev}, livro: {book_abbrev}, capítulo: {chapter_num}", exc_info=True)
+            # Atualiza a UI para mostrar erro
+            self.master.after(0, self._populate_verse_menu, None, str(e))
 
-    def _populate_verse_menu(self, verses_data):
+    def _populate_verse_menu(self, verses_data, error_message=None):
+        from tkinter import messagebox
+        
+        if error_message:
+            messagebox.showerror("Erro ao Carregar Versículos",
+                                f"Não foi possível carregar os versículos da API.\n\n"
+                                f"Detalhes: {error_message}",
+                                parent=self.master)
+            verses_data = []
+        
         self.current_chapter_verses = verses_data or [] # Armazena os versículos carregados
         verse_menu = self.view["verse_menu"]
         verse_var = self.view["verse_var"]
@@ -138,10 +157,29 @@ class BibleController:
         Carrega o capítulo inteiro na pré-visualização, mas inicia a projeção
         a partir do versículo que o usuário selecionou.
         """
+        # Validar seleções antes de processar (Fail Fast)
+        version_name = self.view["version_var"].get()
+        book_name = self.view["book_var"].get()
+        chapter_num = self.view["chapter_var"].get()
+        
+        if not version_name or version_name == "Nenhum":
+            messagebox.showwarning("Seleção Incompleta", "Por favor, selecione uma versão da Bíblia.", parent=self.master)
+            return
+        
+        if not book_name or book_name == "Nenhum":
+            messagebox.showwarning("Seleção Incompleta", "Por favor, selecione um livro da Bíblia.", parent=self.master)
+            return
+        
+        if not chapter_num or chapter_num == "Nenhum":
+            messagebox.showwarning("Seleção Incompleta", "Por favor, selecione um capítulo.", parent=self.master)
+            return
+        
         slides, _, start_index = self._get_selected_content()
         if slides:
             # A mágica acontece aqui: passamos o 'start_index' para o PresentationController
             self.on_content_selected("bible", slides, start_index=start_index)
+        else:
+            messagebox.showwarning("Sem Conteúdo", "Não foi possível carregar os versículos selecionados.", parent=self.master)
 
     def add_selected_content_to_playlist(self):
         """

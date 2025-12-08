@@ -1,6 +1,12 @@
 import customtkinter as ctk
 from tkinter import messagebox
 from tkinter.colorchooser import askcolor
+import logging
+from core.exceptions import ConfigSaveError, ValidationError
+from core.validators import validate_string
+from gui.utils.dialog_utils import center_dialog
+
+logger = logging.getLogger(__name__)
 
 # =============================================================================
 # Diálogo para Adicionar/Editar Músicas (Sem alterações aqui)
@@ -56,17 +62,20 @@ class AddEditSongDialog(ctk.CTkToplevel):
         
         self.title_entry.focus_set()
         self.protocol("WM_DELETE_WINDOW", self.on_cancel)
-        self.after(50, self._center_window)
+        self.after(50, lambda: center_dialog(self, self.master))
 
     def on_save(self):
-        title = self.title_entry.get().strip()
-        artist = self.artist_entry.get().strip()
-        lyrics_full = self.lyrics_textbox.get("1.0", "end-1c").strip() 
-        if not all([title, artist, lyrics_full]):
-            messagebox.showwarning("Campos Vazios", "Título, Artista e Letra não podem estar vazios.", parent=self)
-            return
-        self.result = { "title": title, "artist": artist, "lyrics_full": lyrics_full }
-        self.destroy()
+        try:
+            # Validar campos antes de processar (Fail Fast)
+            title = validate_string(self.title_entry.get(), "Título", min_length=1)
+            artist = validate_string(self.artist_entry.get(), "Artista", min_length=1)
+            lyrics_full = validate_string(self.lyrics_textbox.get("1.0", "end-1c"), "Letra Completa", min_length=1)
+            
+            self.result = { "title": title, "artist": artist, "lyrics_full": lyrics_full }
+            self.destroy()
+        except ValidationError as e:
+            logger.warning(f"Erro de validação ao salvar música: {e}")
+            messagebox.showerror("Erro de Validação", str(e), parent=self)
 
     def on_cancel(self):
         self.result = None
@@ -77,18 +86,6 @@ class AddEditSongDialog(ctk.CTkToplevel):
         self.master.wait_window(self)
         return self.result
 
-    def _center_window(self):
-        """Centraliza a janela de diálogo na janela mestre."""
-        try:
-            self.update_idletasks()
-            master_x, master_y = self.master.winfo_x(), self.master.winfo_y()
-            master_w, master_h = self.master.winfo_width(), self.master.winfo_height()
-            dialog_w, dialog_h = self.winfo_width(), self.winfo_height()
-            x = master_x + (master_w - dialog_w) // 2
-            y = master_y + (master_h - dialog_h) // 2
-            self.geometry(f"+{x}+{y}")
-        except Exception as e:
-            print(f"Erro ao centralizar AddEditSongDialog: {e}")
 
 # =============================================================================
 # Diálogo de Configurações (Sem alterações aqui)
@@ -129,7 +126,7 @@ class SettingsDialog(ctk.CTkToplevel):
         ctk.CTkButton(button_frame, text="Cancelar", command=self.destroy, fg_color="gray50", hover_color="gray60", width=100).grid(row=0, column=2, padx=5)
 
         self.protocol("WM_DELETE_WINDOW", self.destroy)
-        self.after(50, self._center_window)
+        self.after(50, lambda: center_dialog(self, self.master))
         self.focus_force()
 
     def _create_style_tab(self, tab, section_name):
@@ -201,7 +198,16 @@ class SettingsDialog(ctk.CTkToplevel):
 
             for key, var in vars_dict.items():
                 # Se qualquer chamada ao set_setting falhar, a função inteira retorna False.
-                if not self.config_manager.set_setting(section_name, key, var.get()):
+                try:
+                    if not self.config_manager.set_setting(section_name, key, var.get()):
+                        return False
+                except ConfigSaveError as e:
+                    logger.error("Erro ao salvar configuração", exc_info=True)
+                    messagebox.showerror("Erro ao Salvar",
+                                         f"Não foi possível salvar as configurações no arquivo 'config.ini'.\n"
+                                         f"Verifique as permissões de escrita na pasta do programa.\n\n"
+                                         f"Detalhes: {str(e)}",
+                                         parent=self)
                     return False
         return True # Se todas foram salvas com sucesso, retorna True.
 
@@ -209,23 +215,6 @@ class SettingsDialog(ctk.CTkToplevel):
         # (Este método permanece o mesmo)
         color_info = askcolor(parent=self)
         if color_info and color_info[1]: string_var_to_update.set(color_info[1])
-
-    def _center_window(self):
-        # (Este método permanece o mesmo)
-        try: self.after(20, self._do_center)
-        except Exception: pass 
-
-    def _do_center(self):
-        try:
-            self.update_idletasks() 
-            master_x, master_y = self.master.winfo_x(), self.master.winfo_y()
-            master_w, master_h = self.master.winfo_width(), self.master.winfo_height()
-            dialog_w, dialog_h = self.winfo_width(), self.winfo_height()
-            if dialog_w <= 1: self.after(50, self._do_center); return
-            x = master_x + (master_w - dialog_w) // 2
-            y = master_y + (master_h - dialog_h) // 2
-            self.geometry(f"+{x}+{y}")
-        except Exception: pass
 
 # =============================================================================
 # Diálogo de Ajuda de Atalhos (COM AS ALTERAÇÕES)
@@ -275,26 +264,5 @@ class ShortcutsHelpDialog(ctk.CTkToplevel):
         
         # --- ALTERAÇÃO 2: LÓGICA DE CENTRALIZAÇÃO ADICIONADA ---
         self.protocol("WM_DELETE_WINDOW", self.destroy)
-        self.after(50, self._center_window) # Chama a centralização após a janela ser desenhada
+        self.after(50, lambda: center_dialog(self, self.master)) # Chama a centralização após a janela ser desenhada
         self.focus_force()
-
-    def _center_window(self):
-        """Centraliza a janela de diálogo na janela mestre."""
-        try:
-            self.update_idletasks() # Garante que as dimensões da janela estejam atualizadas
-            master_x = self.master.winfo_x()
-            master_y = self.master.winfo_y()
-            master_w = self.master.winfo_width()
-            master_h = self.master.winfo_height()
-            
-            dialog_w = self.winfo_width()
-            dialog_h = self.winfo_height()
-            
-            # Calcula a posição x, y para a janela de diálogo
-            x = master_x + (master_w - dialog_w) // 2
-            y = master_y + (master_h - dialog_h) // 2
-            
-            self.geometry(f"+{x}+{y}")
-        except Exception:
-            # Se algo der errado (ex: janela principal minimizada), apenas ignora.
-            pass

@@ -10,6 +10,7 @@ from .controllers.bible_controller import BibleController
 from .controllers.playlist_controller import PlaylistController
 from .controllers.text_controller import TextController
 from gui.dialogs import SettingsDialog, ShortcutsHelpDialog
+from gui.ui.builders import create_top_bar, create_preview_pane, create_main_tabs
 
 class MainWindow(ctk.CTk):
     def __init__(self):
@@ -48,22 +49,17 @@ class MainWindow(ctk.CTk):
 
     def _create_top_bar(self):
         """Cria a barra superior com controles globais de projeção."""
-        top_frame = ctk.CTkFrame(self)
-        top_frame.grid(row=0, column=0, columnspan=2, pady=10, padx=10, sticky="ew")
+        callbacks = {
+            'toggle_theme': self.toggle_theme,
+            'show_settings': self.show_settings_dialog,
+            'show_shortcuts': self.show_shortcuts_dialog
+        }
+        widgets = create_top_bar(self, callbacks)
         
-        self.btn_projection_control = ctk.CTkButton(top_frame, text="Abrir Projeção")
-        self.btn_projection_control.pack(side="left", padx=5)
-
-        self.theme_button = ctk.CTkButton(top_frame, text="Tema", command=self.toggle_theme)
-        self.theme_button.pack(side="right", padx=5)
-
-        self.btn_settings = ctk.CTkButton(top_frame, text="⚙️", width=40, command=self.show_settings_dialog)
-        self.btn_settings.pack(side="right", padx=5)
-        
-        # --- INÍCIO DA ADIÇÃO DO BOTÃO DE AJUDA ---
-        self.btn_shortcuts = ctk.CTkButton(top_frame, text="?", width=40, command=self.show_shortcuts_dialog)
-        self.btn_shortcuts.pack(side="right", padx=(0, 5))
-        # --- FIM DA ADIÇÃO ---
+        self.btn_projection_control = widgets['btn_projection']
+        self.theme_button = widgets['theme_button']
+        self.btn_settings = widgets['btn_settings']
+        self.btn_shortcuts = widgets['btn_shortcuts']
         
     def show_shortcuts_dialog(self):
         """Abre a janela de diálogo com a ajuda dos atalhos."""
@@ -72,57 +68,19 @@ class MainWindow(ctk.CTk):
 
     def _create_preview_pane(self):
         """Cria o painel direito com abas para pré-visualização e visão geral."""
-        outer_frame = ctk.CTkFrame(self)
-        outer_frame.grid(row=1, column=1, pady=(0,10), padx=(0,10), sticky="nsew")
-        outer_frame.grid_rowconfigure(0, weight=1)
-        outer_frame.grid_columnconfigure(0, weight=1)
-
-        self.preview_tab_view = ctk.CTkTabview(outer_frame)
-        self.preview_tab_view.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        widgets = create_preview_pane(self, self._on_preview_resize)
         
-        tab_single = self.preview_tab_view.add("Pré-visualização")
-        tab_all = self.preview_tab_view.add("Todos os Slides")
-
-        tab_single.grid_rowconfigure(0, weight=1); tab_single.grid_columnconfigure(0, weight=1)
-        
-        # A cor de fundo será aplicada a este frame.
-        self.preview_frame = ctk.CTkFrame(tab_single, fg_color=("gray90", "gray20"))
-        self.preview_frame.grid(row=0, column=0, sticky="nsew")
-        self.preview_frame.grid_propagate(False)
-        
-        self.slide_preview_label = ctk.CTkLabel(self.preview_frame, text="", font=ctk.CTkFont(size=30, weight="bold"), justify=ctk.CENTER)
-        self.slide_preview_label.place(relx=0.5, rely=0.5, anchor=ctk.CENTER)
-        
-        # O bind para o wraplength agora vai no label, mas a lógica de fonte irá para o controller
-        self.preview_frame.bind("<Configure>", self._on_preview_resize)
-
-        # --- ALTERAÇÃO 1: ADICIONAMOS O NOVO LABEL INDICADOR DE ANIMAÇÃO ---
-        self.animation_text_indicator = ctk.CTkLabel(self.preview_frame, text="", font=ctk.CTkFont(size=12), text_color="gray")
-        self.animation_text_indicator.place(relx=0.02, rely=0.03) # Posiciona no canto superior esquerdo
-
-        self.animation_color_indicator = ctk.CTkFrame(self.preview_frame, height=5, fg_color="transparent")
-        self.animation_color_indicator.pack(side="bottom", fill="x", padx=5, pady=5)
-        
-        self.all_slides_grid_frame = ctk.CTkScrollableFrame(tab_all, label_text=None)
-        self.all_slides_grid_frame.pack(fill="both", expand=True)
-        self.slide_miniatures = []
-
-        controls_frame = ctk.CTkFrame(outer_frame)
-        controls_frame.grid(row=1, column=0, pady=(5,0), padx=5, sticky="ew")
-        controls_frame.grid_columnconfigure(1, weight=1)
-        
-        self.btn_prev_slide = ctk.CTkButton(controls_frame, text="< Anterior", state="disabled")
-        self.btn_prev_slide.grid(row=0, column=0, pady=5, padx=5, sticky="w")
-        
-        middle_sub_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
-        middle_sub_frame.grid(row=0, column=1, pady=5, padx=5)
-        self.slide_indicator_label = ctk.CTkLabel(middle_sub_frame, text="- / -")
-        self.slide_indicator_label.pack(side="left", padx=10)
-        self.btn_clear_preview = ctk.CTkButton(middle_sub_frame, text="Limpar", width=80, fg_color=("gray70", "gray30"))
-        self.btn_clear_preview.pack(side="left", padx=10)
-        
-        self.btn_next_slide = ctk.CTkButton(controls_frame, text="Próximo >", state="disabled")
-        self.btn_next_slide.grid(row=0, column=2, pady=5, padx=5, sticky="e")
+        self.preview_tab_view = widgets['preview_tab_view']
+        self.preview_frame = widgets['preview_frame']
+        self.slide_preview_label = widgets['slide_preview_label']
+        self.animation_text_indicator = widgets['animation_text_indicator']
+        self.animation_color_indicator = widgets['animation_color_indicator']
+        self.all_slides_grid_frame = widgets['all_slides_grid_frame']
+        self.slide_miniatures = widgets['slide_miniatures']
+        self.btn_prev_slide = widgets['btn_prev_slide']
+        self.btn_next_slide = widgets['btn_next_slide']
+        self.slide_indicator_label = widgets['slide_indicator_label']
+        self.btn_clear_preview = widgets['btn_clear_preview']
 
     def build_all_slides_grid(self, slides, current_index):
         """Constrói a grade de miniaturas de slides na aba 'Todos os Slides'."""
@@ -160,13 +118,13 @@ class MainWindow(ctk.CTk):
 
     def _create_main_tabs(self):
         """Cria o contêiner de abas e chama os métodos para construir a UI de cada aba."""
-        self.tab_view = ctk.CTkTabview(self)
-        self.tab_view.grid(row=1, column=0, pady=(0,10), padx=10, sticky="nsew")
+        widgets = create_main_tabs(self)
         
-        self.tab_playlist = self.tab_view.add("Ordem de Culto")
-        self.tab_music = self.tab_view.add("Músicas")
-        self.tab_bible = self.tab_view.add("Bíblia")
-        self.tab_text = self.tab_view.add("Avisos / Texto")
+        self.tab_view = widgets['tab_view']
+        self.tab_playlist = widgets['tab_playlist']
+        self.tab_music = widgets['tab_music']
+        self.tab_bible = widgets['tab_bible']
+        self.tab_text = widgets['tab_text']
 
         self._setup_playlist_tab_ui(self.tab_playlist)
         self._setup_music_tab_ui(self.tab_music)

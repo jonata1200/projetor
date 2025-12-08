@@ -1,0 +1,4 @@
+"""
+Testes para módulos core.
+"""
+
