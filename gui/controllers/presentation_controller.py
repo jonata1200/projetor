@@ -95,7 +95,6 @@ class PresentationController:
             "Espiral": "🌀 Espiral Ativa",
             "Estrelas Piscando": "⭐ Estrelas Ativas",
             "Neve": "❄️ Neve Ativa",
-            "Ondas de Luz": "🌊 Ondas Ativas",
             "Partículas Flutuantes": "✨ Partículas Ativas",
             "Partículas Pulsantes": "💫 Pulsantes Ativas",
             "Pétalas": "🌸 Pétalas Ativas",

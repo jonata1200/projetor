@@ -11,6 +11,8 @@ class BaseAnimation:
         self.is_running = False
         self._after_id = None
         self.particles = []
+        self.current_width = 0
+        self.current_height = 0
 
     def start(self):
         if not self.is_running:
@@ -22,7 +24,31 @@ class BaseAnimation:
         if self._after_id: self.canvas.after_cancel(self._after_id)
 
     def on_resize(self, width, height):
+        # Só recria partículas se as dimensões realmente mudaram significativamente
+        if abs(self.current_width - width) > 10 or abs(self.current_height - height) > 10:
+            self.current_width = width
+            self.current_height = height
+            self._recreate_particles(width, height)
+        else:
+            # Atualiza apenas as dimensões das partículas existentes
+            self._update_particles_dimensions(width, height)
+    
+    def _recreate_particles(self, width, height):
+        """Método para recriar partículas - implementado pelas subclasses"""
         raise NotImplementedError
+    
+    def _update_particles_dimensions(self, width, height):
+        """Atualiza dimensões das partículas existentes sem recriá-las - opcional nas subclasses"""
+        # Por padrão, atualiza w e h de todas as partículas
+        for particle in self.particles:
+            if hasattr(particle, 'w'):
+                particle.w = width
+            if hasattr(particle, 'h'):
+                particle.h = height
+            # Para SpiralParticle, atualiza também max_dimension e max_radius
+            if hasattr(particle, 'max_dimension'):
+                particle.max_dimension = max(width, height)
+                particle.max_radius = particle.max_dimension * 0.7
 
     def update_frame(self):
         raise NotImplementedError
@@ -45,7 +71,7 @@ class SnowFlake:
 
 class SnowAnimation(BaseAnimation):
     NUM_PARTICLES, DELAY = 150, 30
-    def on_resize(self, width, height): self.particles = [SnowFlake(width, height) for _ in range(self.NUM_PARTICLES)]
+    def _recreate_particles(self, width, height): self.particles = [SnowFlake(width, height) for _ in range(self.NUM_PARTICLES)]
     def update_frame(self):
         if not self.is_running: return
         self.canvas.delete("anim_particle")
@@ -77,7 +103,7 @@ class FloatingParticle:
 
 class FloatingParticlesAnimation(BaseAnimation):
     NUM_PARTICLES, DELAY = 100, 30
-    def on_resize(self, width, height): self.particles = [FloatingParticle(width, height) for _ in range(self.NUM_PARTICLES)]
+    def _recreate_particles(self, width, height): self.particles = [FloatingParticle(width, height) for _ in range(self.NUM_PARTICLES)]
     def update_frame(self):
         if not self.is_running: return
         self.canvas.delete("anim_particle")
@@ -132,7 +158,7 @@ class StarParticle:
 class BlinkingStarsAnimation(BaseAnimation):
     NUM_PARTICLES, DELAY = 100, 30
 
-    def on_resize(self, width, height):
+    def _recreate_particles(self, width, height):
         self.particles = [StarParticle(width, height) for _ in range(self.NUM_PARTICLES)]
     
     def update_frame(self):
@@ -163,62 +189,13 @@ class BlinkingStarsAnimation(BaseAnimation):
         self._after_id = self.canvas.after(self.DELAY, self.update_frame)
 
 # =============================================================================
-# Animação 4: Ondas de Luz
-# =============================================================================
-class WaveParticle:
-    def __init__(self, w, h):
-        self.w, self.h = w, h
-        self.x = random.randint(0, self.w)
-        self.y = random.randint(0, self.h)
-        self.size = random.uniform(2, 5)
-        self.wave_offset = random.uniform(0, 6.28)
-        self.speed = random.uniform(0.02, 0.05)
-        self.amplitude = random.uniform(20, 50)
-        self.time = 0
-
-    def update(self):
-        self.time += self.speed
-        self.y = self.y + math.sin(self.time + self.wave_offset) * self.amplitude * 0.01
-        if self.y < 0 or self.y > self.h:
-            self.y = random.randint(0, self.h)
-            self.time = 0
-
-class WaveAnimation(BaseAnimation):
-    NUM_PARTICLES, DELAY = 80, 30
-    
-    def on_resize(self, width, height):
-        self.particles = [WaveParticle(width, height) for _ in range(self.NUM_PARTICLES)]
-    
-    def update_frame(self):
-        if not self.is_running: return
-        self.canvas.delete("anim_particle")
-        
-        color_string = getattr(self, 'particle_color', 'white')
-        try:
-            rgb_16bit = self.canvas.winfo_rgb(color_string)
-            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
-        except Exception:
-            r, g, b = 255, 255, 255
-
-        for p in self.particles:
-            p.update()
-            alpha = 0.6 + 0.4 * math.sin(p.time)
-            val_r, val_g, val_b = int(alpha * r), int(alpha * g), int(alpha * b)
-            color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
-            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
-            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
-        
-        self.canvas.tag_lower("anim_particle")
-        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
-        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
-
-# =============================================================================
-# Animação 5: Chamas/Fogo
+# Animação 4: Chamas/Fogo
 # =============================================================================
 class FlameParticle:
     def __init__(self, w, h):
         self.w, self.h = w, h
-        self.x = random.randint(int(w * 0.3), int(w * 0.7))
+        # Modificado para ocupar toda a largura da tela
+        self.x = random.randint(0, self.w)
         self.y = self.h
         self.size = random.uniform(3, 8)
         self.speed = random.uniform(1.5, 4.0)
@@ -233,7 +210,8 @@ class FlameParticle:
         self.size *= 0.99
         
         if self.life <= 0 or self.y < 0 or self.size < 1:
-            self.x = random.randint(int(self.w * 0.3), int(self.w * 0.7))
+            # Modificado para ocupar toda a largura da tela
+            self.x = random.randint(0, self.w)
             self.y = self.h
             self.life = 1.0
             self.size = random.uniform(3, 8)
@@ -243,7 +221,7 @@ class FlameParticle:
 class FireAnimation(BaseAnimation):
     NUM_PARTICLES, DELAY = 120, 30
 
-    def on_resize(self, width, height):
+    def _recreate_particles(self, width, height):
         self.particles = [FlameParticle(width, height) for _ in range(self.NUM_PARTICLES)]
     
     def update_frame(self):
@@ -280,7 +258,8 @@ class RainDrop:
         self.x = random.randint(0, self.w)
         self.y = random.randint(-self.h, 0)
         self.length = random.uniform(15, 40)
-        self.speed = random.uniform(3.0, 7.0)
+        # Velocidade reduzida: de 3.0-7.0 para 1.5-3.5
+        self.speed = random.uniform(1.5, 3.5)
         self.width = random.uniform(1, 2)
 
     def move(self):
@@ -292,7 +271,7 @@ class RainDrop:
 class RainAnimation(BaseAnimation):
     NUM_PARTICLES, DELAY = 200, 20
 
-    def on_resize(self, width, height):
+    def _recreate_particles(self, width, height):
         self.particles = [RainDrop(width, height) for _ in range(self.NUM_PARTICLES)]
     
     def update_frame(self):
@@ -346,7 +325,7 @@ class PetalParticle:
 class PetalsAnimation(BaseAnimation):
     NUM_PARTICLES, DELAY = 80, 30
 
-    def on_resize(self, width, height):
+    def _recreate_particles(self, width, height):
         self.particles = [PetalParticle(width, height) for _ in range(self.NUM_PARTICLES)]
     
     def update_frame(self):
@@ -401,7 +380,7 @@ class AuroraParticle:
 class AuroraAnimation(BaseAnimation):
     NUM_PARTICLES, DELAY = 15, 40
 
-    def on_resize(self, width, height):
+    def _recreate_particles(self, width, height):
         self.particles = [AuroraParticle(width, height) for _ in range(self.NUM_PARTICLES)]
     
     def update_frame(self):
@@ -438,8 +417,8 @@ class SpiralParticle:
         # Usa o maior lado da tela para permitir espiral maior
         self.max_dimension = max(w, h)
         self.radius = random.uniform(0, self.max_dimension / 4)
-        self.angular_speed = random.uniform(0.01, 0.02)  # Reduzido de 0.02-0.05 para 0.01-0.02
-        self.radius_speed = random.uniform(0.2, 0.8)     # Reduzido de 0.5-2.0 para 0.2-0.8
+        self.angular_speed = random.uniform(0.005, 0.01)  # Reduzido ainda mais: de 0.01-0.02 para 0.005-0.01
+        self.radius_speed = random.uniform(0.1, 0.4)      # Reduzido ainda mais: de 0.2-0.8 para 0.1-0.4
         self.size = random.uniform(2, 5)
         # Aumentado para ocupar mais espaço - usa até 70% da maior dimensão
         self.max_radius = self.max_dimension * 0.7
@@ -458,7 +437,7 @@ class SpiralParticle:
 class SpiralAnimation(BaseAnimation):
     NUM_PARTICLES, DELAY = 100, 30
 
-    def on_resize(self, width, height):
+    def _recreate_particles(self, width, height):
         self.particles = [SpiralParticle(width, height) for _ in range(self.NUM_PARTICLES)]
     
     def update_frame(self):
@@ -521,7 +500,7 @@ class LightPool:
 class LightPoolsAnimation(BaseAnimation):
     NUM_PARTICLES, DELAY = 8, 40
 
-    def on_resize(self, width, height):
+    def _recreate_particles(self, width, height):
         self.particles = [LightPool(width, height) for _ in range(self.NUM_PARTICLES)]
     
     def update_frame(self):
@@ -573,7 +552,7 @@ class PulsingParticle:
 class PulsingParticlesAnimation(BaseAnimation):
     NUM_PARTICLES, DELAY = 80, 30
 
-    def on_resize(self, width, height):
+    def _recreate_particles(self, width, height):
         self.particles = [PulsingParticle(width, height) for _ in range(self.NUM_PARTICLES)]
     
     def update_frame(self):

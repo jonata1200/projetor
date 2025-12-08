@@ -2,7 +2,7 @@ import customtkinter as ctk
 import tkinter as tk
 from .animations import (
     AuroraAnimation, FireAnimation, RainAnimation, SpiralAnimation,
-    BlinkingStarsAnimation, SnowAnimation, WaveAnimation, FloatingParticlesAnimation,
+    BlinkingStarsAnimation, SnowAnimation, FloatingParticlesAnimation,
     PulsingParticlesAnimation, PetalsAnimation, LightPoolsAnimation
 )
 
@@ -14,11 +14,10 @@ ANIMATION_DEFAULT_COLORS = {
     "Espiral": "#FFD700",             # Dourado
     "Estrelas Piscando": "#FFFAF0",   # Branco creme
     "Neve": "#FFFFFF",                # Branco puro
-    "Ondas de Luz": "#00CED1",        # Ciano
     "Partículas Flutuantes": "#E0E0E0", # Cinza claro
-    "Partículas Pulsantes": "#FF69B4",  # Rosa vibrante
+    "Partículas Pulsantes": "#32CD32",  # Verde lime
     "Pétalas": "#FFB6C1",             # Rosa claro
-    "Poças de Luz": "#FFD700"         # Amarelo dourado
+    "Poças de Luz": "#4169E1"         # Azul royal
 }
 
 # Função auxiliar para obter a cor padrão de uma animação
@@ -53,7 +52,7 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.main_canvas = tk.Canvas(self, bg=self.bg_color, highlightthickness=0)
         self.main_canvas.pack(fill="both", expand=True)
         
-        self.projection_label = ctk.CTkLabel(self.main_canvas, text="", font=ctk.CTkFont(size=60, weight="bold"), text_color=self.font_color, fg_color=self.bg_color, justify=ctk.CENTER)
+        self.projection_label = ctk.CTkLabel(self.main_canvas, text="", font=ctk.CTkFont(size=60, weight="bold"), text_color=self.font_color, fg_color="transparent", justify=ctk.CENTER)
         self.label_window_id = self.main_canvas.create_window(0, 0, window=self.projection_label, anchor="center")
         
         self.animation = None
@@ -81,7 +80,6 @@ class ProjectionWindow(ctk.CTkToplevel):
             "Espiral": SpiralAnimation,
             "Estrelas Piscando": BlinkingStarsAnimation,
             "Neve": SnowAnimation,
-            "Ondas de Luz": WaveAnimation,
             "Partículas Flutuantes": FloatingParticlesAnimation,
             "Partículas Pulsantes": PulsingParticlesAnimation,
             "Pétalas": PetalsAnimation,
@@ -114,7 +112,7 @@ class ProjectionWindow(ctk.CTkToplevel):
         self.projection_label.configure(
             font=ctk.CTkFont(size=int(style_config.get('font_size')), weight="bold"),
             text_color=self.font_color,
-            fg_color=self.bg_color
+            fg_color="transparent"  # Transparente para não bloquear a animação
         )
 
     def _initialize_layout(self):
