@@ -40,8 +40,7 @@ class PlaylistController:
             # Mostra dialog para selecionar animação
             animation_dialog = AnimationSelectionDialog(
                 self.master,
-                default_animation_type="Neve",
-                default_animation_color="#DDDDDD"
+                default_animation_type="Neve"
             )
             animation_data = animation_dialog.get_data()
             
@@ -53,8 +52,7 @@ class PlaylistController:
                 "type": "music",
                 "title": f"{music['title']} - {music['artist']}",
                 "slides": music['slides'],
-                "animation_type": animation_data['animation_type'],
-                "animation_color": animation_data['animation_color']
+                "animation_type": animation_data['animation_type']
             }
             self.playlist.append(item)
             self._render_playlist()
@@ -121,8 +119,7 @@ class PlaylistController:
         animation_data = None
         if selected_item['type'] == 'music':
             animation_data = {
-                'animation_type': selected_item.get('animation_type', 'Nenhuma'),
-                'animation_color': selected_item.get('animation_color', '#DDDDDD')
+                'animation_type': selected_item.get('animation_type', 'Nenhuma')
             }
         
         self.presentation_controller.load_content(
@@ -173,19 +170,16 @@ class PlaylistController:
         
         # Mostra dialog com valores atuais
         current_animation_type = selected_item.get('animation_type', 'Nenhuma')
-        current_animation_color = selected_item.get('animation_color', '#DDDDDD')
         
         animation_dialog = AnimationSelectionDialog(
             self.master,
-            default_animation_type=current_animation_type,
-            default_animation_color=current_animation_color
+            default_animation_type=current_animation_type
         )
         animation_data = animation_dialog.get_data()
         
         if animation_data:
             # Atualiza a animação do item
             selected_item['animation_type'] = animation_data['animation_type']
-            selected_item['animation_color'] = animation_data['animation_color']
             
             # Atualiza a projeção reaplicando o estilo
             self.on_item_select(self.selected_index)

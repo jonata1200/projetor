@@ -1,4 +1,5 @@
 import random
+import math
 
 # =============================================================================
 # Classe Base para Animações
@@ -156,6 +157,442 @@ class BlinkingStarsAnimation(BaseAnimation):
                 
                 x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
                 self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
+        
+        self.canvas.tag_lower("anim_particle")
+        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
+        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
+
+# =============================================================================
+# Animação 4: Ondas de Luz
+# =============================================================================
+class WaveParticle:
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.x = random.randint(0, self.w)
+        self.y = random.randint(0, self.h)
+        self.size = random.uniform(2, 5)
+        self.wave_offset = random.uniform(0, 6.28)
+        self.speed = random.uniform(0.02, 0.05)
+        self.amplitude = random.uniform(20, 50)
+        self.time = 0
+
+    def update(self):
+        self.time += self.speed
+        self.y = self.y + math.sin(self.time + self.wave_offset) * self.amplitude * 0.01
+        if self.y < 0 or self.y > self.h:
+            self.y = random.randint(0, self.h)
+            self.time = 0
+
+class WaveAnimation(BaseAnimation):
+    NUM_PARTICLES, DELAY = 80, 30
+    
+    def on_resize(self, width, height):
+        self.particles = [WaveParticle(width, height) for _ in range(self.NUM_PARTICLES)]
+    
+    def update_frame(self):
+        if not self.is_running: return
+        self.canvas.delete("anim_particle")
+        
+        color_string = getattr(self, 'particle_color', 'white')
+        try:
+            rgb_16bit = self.canvas.winfo_rgb(color_string)
+            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
+        except Exception:
+            r, g, b = 255, 255, 255
+
+        for p in self.particles:
+            p.update()
+            alpha = 0.6 + 0.4 * math.sin(p.time)
+            val_r, val_g, val_b = int(alpha * r), int(alpha * g), int(alpha * b)
+            color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
+            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
+            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
+        
+        self.canvas.tag_lower("anim_particle")
+        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
+        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
+
+# =============================================================================
+# Animação 5: Chamas/Fogo
+# =============================================================================
+class FlameParticle:
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.x = random.randint(int(w * 0.3), int(w * 0.7))
+        self.y = self.h
+        self.size = random.uniform(3, 8)
+        self.speed = random.uniform(1.5, 4.0)
+        self.life = 1.0
+        self.decay = random.uniform(0.005, 0.015)
+        self.drift = random.uniform(-0.5, 0.5)
+
+    def update(self):
+        self.y -= self.speed
+        self.x += self.drift
+        self.life -= self.decay
+        self.size *= 0.99
+        
+        if self.life <= 0 or self.y < 0 or self.size < 1:
+            self.x = random.randint(int(self.w * 0.3), int(self.w * 0.7))
+            self.y = self.h
+            self.life = 1.0
+            self.size = random.uniform(3, 8)
+            self.speed = random.uniform(1.5, 4.0)
+            self.drift = random.uniform(-0.5, 0.5)
+
+class FireAnimation(BaseAnimation):
+    NUM_PARTICLES, DELAY = 120, 30
+
+    def on_resize(self, width, height):
+        self.particles = [FlameParticle(width, height) for _ in range(self.NUM_PARTICLES)]
+    
+    def update_frame(self):
+        if not self.is_running: return
+        self.canvas.delete("anim_particle")
+        
+        color_string = getattr(self, 'particle_color', 'white')
+        try:
+            rgb_16bit = self.canvas.winfo_rgb(color_string)
+            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
+        except Exception:
+            r, g, b = 255, 255, 255
+
+        for p in self.particles:
+            p.update()
+            alpha = p.life * 0.8
+            val_r = min(255, int(alpha * r + (1 - alpha) * 255))
+            val_g = min(255, int(alpha * g + (1 - alpha) * 200))
+            val_b = int(alpha * b)
+            color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
+            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
+            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
+        
+        self.canvas.tag_lower("anim_particle")
+        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
+        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
+
+# =============================================================================
+# Animação 6: Chuva
+# =============================================================================
+class RainDrop:
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.x = random.randint(0, self.w)
+        self.y = random.randint(-self.h, 0)
+        self.length = random.uniform(15, 40)
+        self.speed = random.uniform(3.0, 7.0)
+        self.width = random.uniform(1, 2)
+
+    def move(self):
+        self.y += self.speed
+        if self.y > self.h:
+            self.y = random.randint(-50, 0)
+            self.x = random.randint(0, self.w)
+
+class RainAnimation(BaseAnimation):
+    NUM_PARTICLES, DELAY = 200, 20
+
+    def on_resize(self, width, height):
+        self.particles = [RainDrop(width, height) for _ in range(self.NUM_PARTICLES)]
+    
+    def update_frame(self):
+        if not self.is_running: return
+        self.canvas.delete("anim_particle")
+        
+        color_string = getattr(self, 'particle_color', 'white')
+        try:
+            rgb_16bit = self.canvas.winfo_rgb(color_string)
+            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
+        except Exception:
+            r, g, b = 255, 255, 255
+
+        for p in self.particles:
+            p.move()
+            alpha = 0.7
+            val_r, val_g, val_b = int(alpha * r), int(alpha * g), int(alpha * b)
+            color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
+            x1, y1, x2, y2 = p.x, p.y, p.x + p.width, p.y + p.length
+            self.canvas.create_line(x1, y1, x2, y2, fill=color, width=int(p.width), tags="anim_particle")
+        
+        self.canvas.tag_lower("anim_particle")
+        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
+        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
+
+# =============================================================================
+# Animação 7: Pétalas de Flores
+# =============================================================================
+class PetalParticle:
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.x = random.randint(0, self.w)
+        self.y = random.randint(-self.h, 0)
+        self.size = random.uniform(4, 10)
+        self.speed = random.uniform(0.8, 2.5)
+        self.rotation = random.uniform(0, 6.28)
+        self.rotation_speed = random.uniform(-3, 3)
+        self.drift = random.uniform(-0.5, 0.5)
+        self.alpha = random.uniform(0.4, 0.9)
+
+    def move(self):
+        self.y += self.speed
+        self.x += self.drift + math.sin(self.rotation) * 0.3
+        self.rotation += self.rotation_speed * 0.01
+        
+        if self.y > self.h or self.x < -self.size or self.x > self.w + self.size:
+            self.y = random.randint(-50, 0)
+            self.x = random.randint(0, self.w)
+            self.rotation = random.uniform(0, 6.28)
+
+class PetalsAnimation(BaseAnimation):
+    NUM_PARTICLES, DELAY = 80, 30
+
+    def on_resize(self, width, height):
+        self.particles = [PetalParticle(width, height) for _ in range(self.NUM_PARTICLES)]
+    
+    def update_frame(self):
+        if not self.is_running: return
+        self.canvas.delete("anim_particle")
+        
+        color_string = getattr(self, 'particle_color', 'white')
+        try:
+            rgb_16bit = self.canvas.winfo_rgb(color_string)
+            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
+        except Exception:
+            r, g, b = 255, 255, 255
+
+        for p in self.particles:
+            p.move()
+            val_r, val_g, val_b = int(p.alpha * r), int(p.alpha * g), int(p.alpha * b)
+            color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
+            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
+            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
+        
+        self.canvas.tag_lower("anim_particle")
+        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
+        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
+
+# =============================================================================
+# Animação 8: Aurora/Brilho Suave
+# =============================================================================
+class AuroraParticle:
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.center_x = random.randint(0, self.w)
+        self.center_y = random.randint(0, self.h)
+        self.radius = random.uniform(100, 300)
+        self.angle = random.uniform(0, 6.28)
+        self.angular_speed = random.uniform(0.01, 0.03)
+        self.size = random.uniform(30, 80)
+        self.alpha = random.uniform(0.1, 0.3)
+        self.pulse_phase = random.uniform(0, 6.28)
+        self.pulse_speed = random.uniform(0.02, 0.04)
+
+    def update(self):
+        self.angle += self.angular_speed
+        self.pulse_phase += self.pulse_speed
+        pulse = 0.8 + 0.2 * math.sin(self.pulse_phase)
+        self.x = self.center_x + math.cos(self.angle) * self.radius * pulse
+        self.y = self.center_y + math.sin(self.angle) * self.radius * pulse
+        
+        if self.x < -self.size or self.x > self.w + self.size or self.y < -self.size or self.y > self.h + self.size:
+            self.center_x = random.randint(0, self.w)
+            self.center_y = random.randint(0, self.h)
+
+class AuroraAnimation(BaseAnimation):
+    NUM_PARTICLES, DELAY = 15, 40
+
+    def on_resize(self, width, height):
+        self.particles = [AuroraParticle(width, height) for _ in range(self.NUM_PARTICLES)]
+    
+    def update_frame(self):
+        if not self.is_running: return
+        self.canvas.delete("anim_particle")
+        
+        color_string = getattr(self, 'particle_color', 'white')
+        try:
+            rgb_16bit = self.canvas.winfo_rgb(color_string)
+            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
+        except Exception:
+            r, g, b = 255, 255, 255
+
+        for p in self.particles:
+            p.update()
+            val_r, val_g, val_b = int(p.alpha * r), int(p.alpha * g), int(p.alpha * b)
+            color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
+            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
+            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
+        
+        self.canvas.tag_lower("anim_particle")
+        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
+        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
+
+# =============================================================================
+# Animação 9: Partículas em Espiral
+# =============================================================================
+class SpiralParticle:
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.center_x = w / 2
+        self.center_y = h / 2
+        self.angle = random.uniform(0, 6.28)
+        # Usa o maior lado da tela para permitir espiral maior
+        self.max_dimension = max(w, h)
+        self.radius = random.uniform(0, self.max_dimension / 4)
+        self.angular_speed = random.uniform(0.01, 0.02)  # Reduzido de 0.02-0.05 para 0.01-0.02
+        self.radius_speed = random.uniform(0.2, 0.8)     # Reduzido de 0.5-2.0 para 0.2-0.8
+        self.size = random.uniform(2, 5)
+        # Aumentado para ocupar mais espaço - usa até 70% da maior dimensão
+        self.max_radius = self.max_dimension * 0.7
+
+    def update(self):
+        self.angle += self.angular_speed
+        self.radius += self.radius_speed
+        
+        if self.radius > self.max_radius:
+            self.radius = 0
+            self.angle = random.uniform(0, 6.28)
+        
+        self.x = self.center_x + math.cos(self.angle) * self.radius
+        self.y = self.center_y + math.sin(self.angle) * self.radius
+
+class SpiralAnimation(BaseAnimation):
+    NUM_PARTICLES, DELAY = 100, 30
+
+    def on_resize(self, width, height):
+        self.particles = [SpiralParticle(width, height) for _ in range(self.NUM_PARTICLES)]
+    
+    def update_frame(self):
+        if not self.is_running: return
+        self.canvas.delete("anim_particle")
+        
+        color_string = getattr(self, 'particle_color', 'white')
+        try:
+            rgb_16bit = self.canvas.winfo_rgb(color_string)
+            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
+        except Exception:
+            r, g, b = 255, 255, 255
+
+        for p in self.particles:
+            p.update()
+            alpha = 0.7
+            val_r, val_g, val_b = int(alpha * r), int(alpha * g), int(alpha * b)
+            color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
+            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
+            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
+        
+        self.canvas.tag_lower("anim_particle")
+        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
+        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
+
+# =============================================================================
+# Animação 10: Poças de Luz
+# =============================================================================
+class LightPool:
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.x = random.randint(0, self.w)
+        self.y = random.randint(0, self.h)
+        # Reduzido para círculos menores: de 80-200 para 30-60
+        self.max_size = random.uniform(30, 60)
+        self.current_size = 0
+        self.alpha = 0.0
+        self.growing = True
+        self.growth_speed = random.uniform(0.5, 1.5)  # Reduzido também para acompanhar tamanho menor
+        self.fade_speed = random.uniform(0.02, 0.05)
+
+    def update(self):
+        if self.growing:
+            self.current_size += self.growth_speed
+            self.alpha += self.fade_speed
+            if self.current_size >= self.max_size:
+                self.growing = False
+        else:
+            self.current_size -= self.growth_speed * 0.5
+            self.alpha -= self.fade_speed * 0.7
+            if self.alpha <= 0 or self.current_size <= 0:
+                self.x = random.randint(0, self.w)
+                self.y = random.randint(0, self.h)
+                self.current_size = 0
+                self.alpha = 0.0
+                self.growing = True
+                # Reduzido para círculos menores: de 80-200 para 30-60
+                self.max_size = random.uniform(30, 60)
+
+class LightPoolsAnimation(BaseAnimation):
+    NUM_PARTICLES, DELAY = 8, 40
+
+    def on_resize(self, width, height):
+        self.particles = [LightPool(width, height) for _ in range(self.NUM_PARTICLES)]
+    
+    def update_frame(self):
+        if not self.is_running: return
+        self.canvas.delete("anim_particle")
+        
+        color_string = getattr(self, 'particle_color', 'white')
+        try:
+            rgb_16bit = self.canvas.winfo_rgb(color_string)
+            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
+        except Exception:
+            r, g, b = 255, 255, 255
+
+        for p in self.particles:
+            p.update()
+            if p.alpha > 0 and p.current_size > 0:
+                # Garante que alpha esteja entre 0 e 1
+                alpha = max(0.0, min(1.0, p.alpha))
+                val_r = max(0, min(255, int(alpha * r)))
+                val_g = max(0, min(255, int(alpha * g)))
+                val_b = max(0, min(255, int(alpha * b)))
+                color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
+                x1, y1, x2, y2 = p.x - p.current_size, p.y - p.current_size, p.x + p.current_size, p.y + p.current_size
+                self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
+        
+        self.canvas.tag_lower("anim_particle")
+        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
+        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
+
+# =============================================================================
+# Animação 11: Partículas Pulsantes
+# =============================================================================
+class PulsingParticle:
+    def __init__(self, w, h):
+        self.w, self.h = w, h
+        self.x = random.randint(0, self.w)
+        self.y = random.randint(0, self.h)
+        self.base_size = random.uniform(3, 8)
+        self.current_size = self.base_size
+        self.pulse_speed = random.uniform(0.05, 0.15)
+        self.pulse_phase = random.uniform(0, 6.28)
+        self.alpha = random.uniform(0.5, 1.0)
+
+    def update(self):
+        self.pulse_phase += self.pulse_speed
+        pulse = 0.7 + 0.3 * math.sin(self.pulse_phase)
+        self.current_size = self.base_size * pulse
+
+class PulsingParticlesAnimation(BaseAnimation):
+    NUM_PARTICLES, DELAY = 80, 30
+
+    def on_resize(self, width, height):
+        self.particles = [PulsingParticle(width, height) for _ in range(self.NUM_PARTICLES)]
+    
+    def update_frame(self):
+        if not self.is_running: return
+        self.canvas.delete("anim_particle")
+        
+        color_string = getattr(self, 'particle_color', 'white')
+        try:
+            rgb_16bit = self.canvas.winfo_rgb(color_string)
+            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
+        except Exception:
+            r, g, b = 255, 255, 255
+
+        for p in self.particles:
+            p.update()
+            val_r, val_g, val_b = int(p.alpha * r), int(p.alpha * g), int(p.alpha * b)
+            color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
+            x1, y1, x2, y2 = p.x - p.current_size, p.y - p.current_size, p.x + p.current_size, p.y + p.current_size
+            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
         
         self.canvas.tag_lower("anim_particle")
         if self.label_window_id: self.canvas.tag_raise(self.label_window_id)

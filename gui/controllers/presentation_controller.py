@@ -89,15 +89,26 @@ class PresentationController:
         
         anim_type = style_config.get('animation_type', 'Nenhuma')
         anim_text_map = {
+            "Aurora": "🌌 Aurora Ativa",
+            "Chamas": "🔥 Chamas Ativas",
+            "Chuva": "🌧️ Chuva Ativa",
+            "Espiral": "🌀 Espiral Ativa",
+            "Estrelas Piscando": "⭐ Estrelas Ativas",
             "Neve": "❄️ Neve Ativa",
+            "Ondas de Luz": "🌊 Ondas Ativas",
             "Partículas Flutuantes": "✨ Partículas Ativas",
-            "Estrelas Piscando": "⭐ Estrelas Ativas"
+            "Partículas Pulsantes": "💫 Pulsantes Ativas",
+            "Pétalas": "🌸 Pétalas Ativas",
+            "Poças de Luz": "💡 Poças Ativas"
         }
         # --- ALTERAÇÃO 1: ATUALIZA O INDICADOR DE TEXTO DA ANIMAÇÃO ---
         self.ui["animation_text_indicator"].configure(text=anim_text_map.get(anim_type, ""))
         
         if anim_type != 'Nenhuma':
-            self.ui["animation_indicator"].configure(fg_color=style_config['animation_color'])
+            # Usa a cor padrão da animação
+            from gui.projection_window import get_animation_default_color
+            default_color = get_animation_default_color(anim_type)
+            self.ui["animation_indicator"].configure(fg_color=default_color)
         else:
             self.ui["animation_indicator"].configure(fg_color="transparent")
         
@@ -114,8 +125,7 @@ class PresentationController:
             'font_size': self.config_manager.get_int_setting(section_name, 'font_size', 60),
             'font_color': self.config_manager.get_setting(section_name, 'font_color', 'white'),
             'bg_color': self.config_manager.get_setting(section_name, 'bg_color', 'black'),
-            'animation_type': 'Nenhuma',  # Padrão: nenhuma animação
-            'animation_color': '#DDDDDD'  # Cor padrão (não usada se animation_type for 'Nenhuma')
+            'animation_type': 'Nenhuma'  # Padrão: nenhuma animação
         }
         
         # Para músicas, usa a animação do item (se houver)
@@ -123,11 +133,9 @@ class PresentationController:
         if self.content_type == 'music':
             if self.item_animation_data:
                 config['animation_type'] = self.item_animation_data.get('animation_type', 'Nenhuma')
-                config['animation_color'] = self.item_animation_data.get('animation_color', '#DDDDDD')
             else:
                 # Item antigo sem animação - usa "Nenhuma" como padrão
                 config['animation_type'] = 'Nenhuma'
-                config['animation_color'] = '#DDDDDD'
         
         # Para Bíblia e Texto, sempre usa "Nenhuma" (animação removida das configurações)
         

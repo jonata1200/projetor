@@ -1,6 +1,30 @@
 import customtkinter as ctk
 import tkinter as tk
-from .animations import SnowAnimation, FloatingParticlesAnimation, BlinkingStarsAnimation
+from .animations import (
+    AuroraAnimation, FireAnimation, RainAnimation, SpiralAnimation,
+    BlinkingStarsAnimation, SnowAnimation, WaveAnimation, FloatingParticlesAnimation,
+    PulsingParticlesAnimation, PetalsAnimation, LightPoolsAnimation
+)
+
+# Cores padrão para cada animação
+ANIMATION_DEFAULT_COLORS = {
+    "Aurora": "#7B68EE",              # Roxo suave
+    "Chamas": "#FF6B35",              # Laranja/vermelho
+    "Chuva": "#87CEEB",               # Azul claro
+    "Espiral": "#FFD700",             # Dourado
+    "Estrelas Piscando": "#FFFAF0",   # Branco creme
+    "Neve": "#FFFFFF",                # Branco puro
+    "Ondas de Luz": "#00CED1",        # Ciano
+    "Partículas Flutuantes": "#E0E0E0", # Cinza claro
+    "Partículas Pulsantes": "#FF69B4",  # Rosa vibrante
+    "Pétalas": "#FFB6C1",             # Rosa claro
+    "Poças de Luz": "#FFD700"         # Amarelo dourado
+}
+
+# Função auxiliar para obter a cor padrão de uma animação
+def get_animation_default_color(animation_type: str) -> str:
+    """Retorna a cor padrão para um tipo de animação."""
+    return ANIMATION_DEFAULT_COLORS.get(animation_type, '#FFFFFF')
 
 class ProjectionWindow(ctk.CTkToplevel):
     FADE_STEPS = 15
@@ -51,9 +75,17 @@ class ProjectionWindow(ctk.CTkToplevel):
 
     def apply_style(self, style_config):
         animation_map = {
+            "Aurora": AuroraAnimation,
+            "Chamas": FireAnimation,
+            "Chuva": RainAnimation,
+            "Espiral": SpiralAnimation,
+            "Estrelas Piscando": BlinkingStarsAnimation,
             "Neve": SnowAnimation,
+            "Ondas de Luz": WaveAnimation,
             "Partículas Flutuantes": FloatingParticlesAnimation,
-            "Estrelas Piscando": BlinkingStarsAnimation
+            "Partículas Pulsantes": PulsingParticlesAnimation,
+            "Pétalas": PetalsAnimation,
+            "Poças de Luz": LightPoolsAnimation
         }
         new_anim_name = style_config.get('animation_type', 'Nenhuma')
         new_anim_class = animation_map.get(new_anim_name)
@@ -73,7 +105,8 @@ class ProjectionWindow(ctk.CTkToplevel):
                 self.animation = None
         
         if self.animation:
-            self.animation.particle_color = style_config.get('animation_color')
+            # Usa a cor padrão da animação
+            self.animation.particle_color = ANIMATION_DEFAULT_COLORS.get(new_anim_name, '#FFFFFF')
 
         self.bg_color = style_config.get('bg_color')
         self.font_color = style_config.get('font_color')
