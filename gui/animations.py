@@ -13,6 +13,8 @@ class BaseAnimation:
         self.particles = []
         self.current_width = 0
         self.current_height = 0
+        self._cached_rgb = (255, 255, 255)  # Cache para cores RGB (inicializado com branco)
+        self._cached_color_string = None
 
     def start(self):
         if not self.is_running:
@@ -50,6 +52,18 @@ class BaseAnimation:
                 particle.max_dimension = max(width, height)
                 particle.max_radius = particle.max_dimension * 0.7
 
+    def _get_rgb_color(self, color_string):
+        """Obtém RGB da cor, usando cache para evitar winfo_rgb repetido."""
+        if color_string != self._cached_color_string:
+            try:
+                rgb_16bit = self.canvas.winfo_rgb(color_string)
+                self._cached_rgb = (rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256)
+                self._cached_color_string = color_string
+            except Exception:
+                self._cached_rgb = (255, 255, 255)
+                self._cached_color_string = color_string
+        return self._cached_rgb
+
     def update_frame(self):
         raise NotImplementedError
 
@@ -70,14 +84,19 @@ class SnowFlake:
         if self.y > self.h or self.x < 0 or self.x > self.w: self.y, self.x = random.randint(-50, -10), random.randint(0, self.w)
 
 class SnowAnimation(BaseAnimation):
-    NUM_PARTICLES, DELAY = 150, 30
+    NUM_PARTICLES, DELAY = 100, 35  # Reduzido partículas e aumentado delay para melhor performance
     def _recreate_particles(self, width, height): self.particles = [SnowFlake(width, height) for _ in range(self.NUM_PARTICLES)]
     def update_frame(self):
         if not self.is_running: return
         self.canvas.delete("anim_particle")
-        color = getattr(self, 'particle_color', 'white')
+        color_string = getattr(self, 'particle_color', 'white')
+        r, g, b = self._get_rgb_color(color_string)
+        
         for p in self.particles:
             p.move()
+            # Opacidade 100% (não usa alpha, usa a cor diretamente)
+            val_r, val_g, val_b = r, g, b
+            color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
             x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
             self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
         self.canvas.tag_lower("anim_particle")
@@ -269,7 +288,7 @@ class RainDrop:
             self.x = random.randint(0, self.w)
 
 class RainAnimation(BaseAnimation):
-    NUM_PARTICLES, DELAY = 200, 20
+    NUM_PARTICLES, DELAY = 120, 25  # Reduzido partículas e aumentado delay para melhor performance
 
     def _recreate_particles(self, width, height):
         self.particles = [RainDrop(width, height) for _ in range(self.NUM_PARTICLES)]
@@ -287,8 +306,7 @@ class RainAnimation(BaseAnimation):
 
         for p in self.particles:
             p.move()
-            alpha = 0.7
-            val_r, val_g, val_b = int(alpha * r), int(alpha * g), int(alpha * b)
+            val_r, val_g, val_b = int(0.7 * r), int(0.7 * g), int(0.7 * b)
             color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
             x1, y1, x2, y2 = p.x, p.y, p.x + p.width, p.y + p.length
             self.canvas.create_line(x1, y1, x2, y2, fill=color, width=int(p.width), tags="anim_particle")

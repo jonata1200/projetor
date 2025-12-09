@@ -1,5 +1,6 @@
 import threading
 import logging
+import time
 from tkinter import messagebox
 from core.exceptions import BibleAPIError, ValidationError
 
@@ -20,7 +21,8 @@ class BibleController:
 
         self._setup_callbacks()
         # Inicia o carregamento das versões da Bíblia em uma thread separada para não travar a UI
-        threading.Thread(target=self.populate_versions, daemon=True).start()
+        # Usa after() para garantir que a thread seja criada após a janela estar totalmente inicializada
+        self.master.after(100, lambda: threading.Thread(target=self.populate_versions, daemon=True).start())
 
     def _setup_callbacks(self):
         self.view["version_menu"].configure(command=self.on_version_selected)
@@ -32,7 +34,28 @@ class BibleController:
 
     def populate_versions(self):
         versions = self.manager.load_versions()
-        self.master.after(0, self._update_version_menu, versions)
+        # Tenta atualizar a UI na thread principal
+        # Se o loop principal ainda não estiver rodando, tenta novamente após um delay
+        try:
+            self.master.after(0, self._update_version_menu, versions)
+        except RuntimeError:
+            # Se o loop principal ainda não estiver ativo, aguarda um pouco e tenta novamente
+            time.sleep(0.1)
+            try:
+                self.master.after(0, self._update_version_menu, versions)
+            except RuntimeError:
+                # Se ainda falhar, agenda após um delay maior usando after_idle quando disponível
+                logger.warning("Não foi possível agendar atualização de versões imediatamente. Tentando novamente...")
+                # Tenta novamente após mais tempo
+                threading.Timer(0.5, lambda: self._safe_update_versions(versions)).start()
+    
+    def _safe_update_versions(self, versions):
+        """Método auxiliar para tentar atualizar as versões de forma segura."""
+        try:
+            if hasattr(self.master, 'winfo_exists') and self.master.winfo_exists():
+                self.master.after(0, self._update_version_menu, versions)
+        except RuntimeError:
+            logger.error("Falha ao atualizar menu de versões da Bíblia após várias tentativas")
 
     def _update_version_menu(self, versions):
         self.versions_data = versions
@@ -87,12 +110,25 @@ class BibleController:
         # Busca os dados em uma thread
         try:
             verses_data = self.manager.api_client.get_chapter_verses(version_abbrev, book_abbrev, chapter_num)
-            # Atualiza a UI na thread principal
-            self.master.after(0, self._populate_verse_menu, verses_data)
+            # Atualiza a UI na thread principal de forma segura
+            self._safe_after(0, self._populate_verse_menu, verses_data)
         except BibleAPIError as e:
             logger.error(f"Erro ao buscar versículos - versão: {version_abbrev}, livro: {book_abbrev}, capítulo: {chapter_num}", exc_info=True)
             # Atualiza a UI para mostrar erro
-            self.master.after(0, self._populate_verse_menu, None, str(e))
+            self._safe_after(0, self._populate_verse_menu, None, str(e))
+    
+    def _safe_after(self, delay_ms, callback, *args):
+        """Executa after() de forma segura, lidando com RuntimeError se o loop principal não estiver ativo."""
+        try:
+            self.master.after(delay_ms, callback, *args)
+        except RuntimeError:
+            # Se o loop principal não estiver ativo, aguarda um pouco e tenta novamente
+            time.sleep(0.1)
+            try:
+                self.master.after(delay_ms, callback, *args)
+            except RuntimeError:
+                logger.warning(f"Não foi possível agendar callback {callback.__name__}. Tentando novamente após delay...")
+                threading.Timer(0.5, lambda: self._safe_after(delay_ms, callback, *args)).start()
 
     def _populate_verse_menu(self, verses_data, error_message=None):
         from tkinter import messagebox
