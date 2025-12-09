@@ -124,7 +124,9 @@ class PresentationController:
             'font_size': self.config_manager.get_int_setting(section_name, 'font_size', 60),
             'font_color': self.config_manager.get_setting(section_name, 'font_color', 'white'),
             'bg_color': self.config_manager.get_setting(section_name, 'bg_color', 'black'),
-            'animation_type': 'Nenhuma'  # Padrão: nenhuma animação
+            'animation_type': 'Nenhuma',  # Padrão: nenhuma animação
+            'text_bg_enabled': self.config_manager.get_setting(section_name, 'text_bg_enabled', 'true'),
+            'text_bg_opacity': self.config_manager.get_setting(section_name, 'text_bg_opacity', '0.75')
         }
         
         # Para músicas, usa a animação do item (se houver)

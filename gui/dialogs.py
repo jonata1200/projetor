@@ -154,12 +154,34 @@ class SettingsDialog(ctk.CTkToplevel):
         vars_dict['bg_color'] = ctk.StringVar(value=self.config_manager.get_setting(section_name, 'bg_color'))
         ctk.CTkEntry(frame_bg, textvariable=vars_dict['bg_color']).grid(row=0, column=0, sticky="ew")
         ctk.CTkButton(frame_bg, text="Escolher...", width=80, command=lambda v=vars_dict['bg_color']: self._pick_color(v)).grid(row=0, column=1, padx=(10,0))
+
+        # Fundo semi-transparente (apenas para músicas)
+        if section_name == 'Projection_Music':
+            ctk.CTkLabel(tab, text="Fundo semitransparente:").grid(row=3, column=0, padx=10, pady=(15,5), sticky="w")
+            vars_dict['text_bg_enabled'] = ctk.BooleanVar(value=self.config_manager.get_setting(section_name, 'text_bg_enabled', 'true').lower() in ('1','true','yes','on'))
+            ctk.CTkSwitch(tab, text="Ativar retângulo atrás do texto", variable=vars_dict['text_bg_enabled']).grid(row=3, column=1, padx=10, pady=(15,5), sticky="w")
+
+            ctk.CTkLabel(tab, text="Opacidade do fundo (0-1):").grid(row=4, column=0, padx=10, pady=5, sticky="w")
+            vars_dict['text_bg_opacity'] = ctk.DoubleVar(value=float(self.config_manager.get_setting(section_name, 'text_bg_opacity', '0.75') or 0.75))
+            opacity_frame = ctk.CTkFrame(tab, fg_color="transparent")
+            opacity_frame.grid(row=4, column=1, padx=10, pady=5, sticky="ew")
+            opacity_frame.grid_columnconfigure(0, weight=1)
+            opacity_value_var = ctk.StringVar(value=f"{vars_dict['text_bg_opacity'].get():.2f}")
+            ctk.CTkSlider(
+                opacity_frame,
+                variable=vars_dict['text_bg_opacity'],
+                from_=0.0,
+                to=1.0,
+                number_of_steps=20,
+                command=lambda val, v=opacity_value_var: v.set(f"{float(val):.2f}")
+            ).grid(row=0, column=0, sticky="ew", padx=(0,8))
+            ctk.CTkLabel(opacity_frame, width=40, textvariable=opacity_value_var).grid(row=0, column=1, sticky="e")
         
         # Animação removida de todas as configurações
         # A animação agora é configurada apenas na Ordem de Culto para músicas
         info_label = ctk.CTkLabel(tab, text="💡 A animação é configurada individualmente\nna Ordem de Culto ao adicionar cada música.", 
                                  text_color="gray", justify="left")
-        info_label.grid(row=3, column=0, columnspan=2, padx=10, pady=10, sticky="w")
+        info_label.grid(row=5 if section_name == 'Projection_Music' else 3, column=0, columnspan=2, padx=10, pady=10, sticky="w")
 
         self.style_vars[section_name] = vars_dict
 
@@ -189,6 +211,20 @@ class SettingsDialog(ctk.CTkToplevel):
                                       f"O tamanho da fonte na aba '{section_name}' deve ser um número positivo.",
                                       parent=self)
                 return False # Impede o salvamento se a validação falhar
+
+            # Valida opacidade do fundo (quando existir)
+            if 'text_bg_opacity' in vars_dict:
+                try:
+                    opacity_val = float(vars_dict['text_bg_opacity'].get())
+                    if not (0.0 <= opacity_val <= 1.0):
+                        raise ValueError()
+                except Exception:
+                    messagebox.showwarning(
+                        "Valor Inválido",
+                        "A opacidade do fundo deve ser um número entre 0 e 1.",
+                        parent=self
+                    )
+                    return False
 
             for key, var in vars_dict.items():
                 # Não salva animação (animação é configurada apenas na Ordem de Culto)

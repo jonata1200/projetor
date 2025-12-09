@@ -40,11 +40,13 @@ class ConfigManager:
 
     def _create_default_config(self) -> None:
         """Cria um arquivo de config com seções de estilo separadas."""
-        # Música não tem mais animação nas configs (animação é por item na playlist)
         self.config['Projection_Music'] = {
             'font_size': '70',
             'font_color': 'white',
-            'bg_color': 'black'
+            'bg_color': 'black',
+            # Fundo semi-transparente atrás do texto
+            'text_bg_enabled': 'true',
+            'text_bg_opacity': '0.75'
         }
         self.config['Projection_Bible'] = {
             'font_size': '60',

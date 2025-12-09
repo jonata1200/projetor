@@ -41,6 +41,8 @@ class ProjectionWindow(ctk.CTkToplevel):
         
         self.font_color = 'white'
         self.bg_color = 'black'
+        self.text_bg_enabled = True
+        self.text_bg_opacity = 0.75
 
         self.overrideredirect(True)
         self.geometry(f"{target_monitor_geometry['width']}x{target_monitor_geometry['height']}+{target_monitor_geometry['x']}+{target_monitor_geometry['y']}")
@@ -59,7 +61,7 @@ class ProjectionWindow(ctk.CTkToplevel):
             0, 0, 0, 0,
             fill="black",
             outline="",
-            stipple="gray50",  # Cria efeito semi-transparente (50% opaco - menos transparente)
+            stipple="gray75",  # 75% opaco / 25% transparente
             tags="projection_text_bg"
         )
         
@@ -131,6 +133,13 @@ class ProjectionWindow(ctk.CTkToplevel):
 
         self.bg_color = style_config.get('bg_color')
         self.font_color = style_config.get('font_color')
+        # Configuração do fundo semi-transparente
+        self.text_bg_enabled = str(style_config.get('text_bg_enabled', 'true')).lower() in ('1','true','yes','on')
+        try:
+            self.text_bg_opacity = float(style_config.get('text_bg_opacity', 0.75))
+        except (TypeError, ValueError):
+            self.text_bg_opacity = 0.75
+        self.text_bg_opacity = min(1.0, max(0.0, self.text_bg_opacity))
         self.main_canvas.configure(bg=self.bg_color)
         font_size = int(style_config.get('font_size'))
         # Atualiza o texto do canvas diretamente
@@ -182,8 +191,27 @@ class ProjectionWindow(ctk.CTkToplevel):
         self._update_text_background()
         self._fade_in()
     
+    def _apply_text_background_style(self):
+        """Aplica estado e opacidade do fundo atrás do texto."""
+        if not self.text_bg_enabled or self.text_bg_opacity <= 0.01:
+            self.main_canvas.itemconfig(self.text_bg_id, state="hidden")
+            return
+        # Mapeia opacidade para padrões de stipple
+        if self.text_bg_opacity >= 0.85:
+            stipple = "gray75"
+        elif self.text_bg_opacity >= 0.6:
+            stipple = "gray50"
+        elif self.text_bg_opacity >= 0.35:
+            stipple = "gray25"
+        else:
+            stipple = "gray12"
+        self.main_canvas.itemconfig(self.text_bg_id, stipple=stipple, state="normal")
+
     def _update_text_background(self):
         """Atualiza o retângulo de fundo do texto baseado na bounding box do texto."""
+        if not self.text_bg_enabled or self.text_bg_opacity <= 0.01:
+            self.main_canvas.itemconfig(self.text_bg_id, state="hidden")
+            return
         try:
             # Obtém a bounding box do texto
             bbox = self.main_canvas.bbox(self.text_id)
@@ -195,6 +223,10 @@ class ProjectionWindow(ctk.CTkToplevel):
                 x2 = bbox[2] + padding
                 y2 = bbox[3] + padding
                 self.main_canvas.coords(self.text_bg_id, x1, y1, x2, y2)
+                self._apply_text_background_style()
+            else:
+                # Mesmo sem bbox, aplica estado (útil para limpar/ocultar)
+                self._apply_text_background_style()
         except:
             pass  # Se não conseguir obter bbox, ignora
     
