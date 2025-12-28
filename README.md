@@ -32,19 +32,19 @@ O **Projetor** resolve todos esses problemas oferecendo uma plataforma única, m
 ## 📸 Screenshots / Demonstração
 
 ### Tela Principal - Ordem de Culto
-![Tela Principal - Ordem de Culto](docs/screenshots/main_window_playlist.png) <!-- Insira aqui um print da tela principal mostrando a aba de Ordem de Culto -->
+![Tela Principal - Ordem de Culto](docs/screenshots/main_window_playlist.PNG) <!-- Insira aqui um print da tela principal mostrando a aba de Ordem de Culto -->
 
 ### Gerenciamento de Músicas
-![Gerenciamento de Músicas](docs/screenshots/music_tab.png) <!-- Insira aqui um print da aba de Músicas com a lista de músicas cadastradas -->
+![Gerenciamento de Músicas](docs/screenshots/music_tab.PNG) <!-- Insira aqui um print da aba de Músicas com a lista de músicas cadastradas -->
 
 ### Busca de Versículos Bíblicos
-![Busca de Versículos](docs/screenshots/bible_tab.png) <!-- Insira aqui um print da aba da Bíblia com seletores de versão, livro, capítulo e versículo -->
+![Busca de Versículos](docs/screenshots/bible_tab.PNG) <!-- Insira aqui um print da aba da Bíblia com seletores de versão, livro, capítulo e versículo -->
 
 ### Janela de Projeção
 ![Janela de Projeção](docs/screenshots/projection_window.gif) <!-- Insira aqui um print da janela de projeção em tela cheia com um slide sendo exibido -->
 
 ### Configurações
-![Configurações](docs/screenshots/settings_dialog.png) <!-- Insira aqui um print do diálogo de configurações mostrando opções de personalização -->
+![Configurações](docs/screenshots/settings_dialog.PNG) <!-- Insira aqui um print do diálogo de configurações mostrando opções de personalização -->
 
 ---
 
