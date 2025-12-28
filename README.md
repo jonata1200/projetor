@@ -41,7 +41,7 @@ O **Projetor** resolve todos esses problemas oferecendo uma plataforma única, m
 ![Busca de Versículos](docs/screenshots/bible_tab.png) <!-- Insira aqui um print da aba da Bíblia com seletores de versão, livro, capítulo e versículo -->
 
 ### Janela de Projeção
-![Janela de Projeção](docs/screenshots/projection_window.png) <!-- Insira aqui um print da janela de projeção em tela cheia com um slide sendo exibido -->
+![Janela de Projeção](docs/screenshots/projection_window.gif) <!-- Insira aqui um print da janela de projeção em tela cheia com um slide sendo exibido -->
 
 ### Configurações
 ![Configurações](docs/screenshots/settings_dialog.png) <!-- Insira aqui um print do diálogo de configurações mostrando opções de personalização -->
@@ -313,78 +313,6 @@ projetor/
 - **`docs/`**: Documentação adicional do projeto, incluindo arquitetura e design.
 
 - **`logs/`**: Arquivos de log gerados pela aplicação durante a execução.
-
----
-
-## 🤝 Como Contribuir
-
-Contribuições são sempre bem-vindas! Se você deseja ajudar a melhorar o Projetor, siga estes passos:
-
-### 1. Fork o Projeto
-Faça um fork do repositório no GitHub.
-
-### 2. Crie uma Branch
-```bash
-git checkout -b feature/MinhaNovaFuncionalidade
-```
-
-### 3. Faça suas Alterações
-- Siga os padrões de código existentes
-- Adicione testes para novas funcionalidades
-- Mantenha a cobertura de testes acima de 75%
-- Documente mudanças significativas
-
-### 4. Execute os Testes
-```bash
-pytest
-```
-
-Certifique-se de que todos os testes passam e que a cobertura está adequada.
-
-### 5. Verifique o Tipo de Código (Opcional)
-```bash
-mypy core/
-```
-
-### 6. Commit suas Alterações
-```bash
-git commit -m "Adiciona: Descrição clara da funcionalidade"
-```
-
-Use mensagens de commit descritivas e claras.
-
-### 7. Push para a Branch
-```bash
-git push origin feature/MinhaNovaFuncionalidade
-```
-
-### 8. Abra um Pull Request
-Abra um Pull Request no GitHub descrevendo suas alterações.
-
-### 📋 Diretrizes de Contribuição
-
-- **Código Limpo**: Mantenha o código limpo, legível e bem documentado
-- **Testes**: Adicione testes para novas funcionalidades
-- **Documentação**: Atualize a documentação quando necessário
-- **Padrões**: Siga os padrões de código Python (PEP 8)
-- **Commits**: Use mensagens de commit descritivas
-
-### 🐛 Reportar Bugs
-
-Se você encontrar um bug, por favor:
-1. Verifique se o bug já não foi reportado nas Issues
-2. Crie uma nova Issue com:
-   - Descrição clara do problema
-   - Passos para reproduzir
-   - Comportamento esperado vs. comportamento atual
-   - Informações do sistema (OS, versão do Python, etc.)
-
-### 💡 Sugerir Funcionalidades
-
-Tem uma ideia para melhorar o Projetor? Abra uma Issue descrevendo:
-- A funcionalidade desejada
-- Por que seria útil
-- Como você imagina que funcionaria
 
 ---
 
