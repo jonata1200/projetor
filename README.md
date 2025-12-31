@@ -81,8 +81,7 @@ O **Projetor** resolve todos esses problemas oferecendo uma plataforma única, m
 ### 🎨 Sistema de Projeção
 - **Janela Dedicada**: Projeção em janela separada, ideal para uso com projetor
 - **Suporte a Múltiplos Monitores**: Detecção automática e projeção no monitor secundário
-- **Animações Personalizáveis**: 10 tipos diferentes de animações:
-  - Aurora
+- **Animações Personalizáveis**: 9 tipos diferentes de animações:
   - Chamas
   - Chuva
   - Espiral

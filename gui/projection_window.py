@@ -1,14 +1,13 @@
 import customtkinter as ctk
 import tkinter as tk
 from .animations import (
-    AuroraAnimation, FireAnimation, RainAnimation, SpiralAnimation,
+    FireAnimation, RainAnimation, SpiralAnimation,
     BlinkingStarsAnimation, SnowAnimation, FloatingParticlesAnimation,
     PulsingParticlesAnimation, PetalsAnimation, LightPoolsAnimation
 )
 
 # Cores padrão para cada animação
 ANIMATION_DEFAULT_COLORS = {
-    "Aurora": "#7B68EE",              # Roxo suave
     "Chamas": "#FF6B35",              # Laranja/vermelho
     "Chuva": "#87CEEB",               # Azul claro
     "Espiral": "#FFD700",             # Dourado
@@ -98,7 +97,6 @@ class ProjectionWindow(ctk.CTkToplevel):
 
     def apply_style(self, style_config):
         animation_map = {
-            "Aurora": AuroraAnimation,
             "Chamas": FireAnimation,
             "Chuva": RainAnimation,
             "Espiral": SpiralAnimation,

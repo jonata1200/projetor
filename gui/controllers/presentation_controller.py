@@ -89,7 +89,6 @@ class PresentationController:
         
         anim_type = style_config.get('animation_type', 'Nenhuma')
         anim_text_map = {
-            "Aurora": "🌌 Aurora Ativa",
             "Chamas": "🔥 Chamas Ativas",
             "Chuva": "🌧️ Chuva Ativa",
             "Espiral": "🌀 Espiral Ativa",

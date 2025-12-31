@@ -279,7 +279,8 @@ class RainDrop:
         self.length = random.uniform(15, 40)
         # Velocidade reduzida: de 3.0-7.0 para 1.5-3.5
         self.speed = random.uniform(1.5, 3.5)
-        self.width = random.uniform(1, 2)
+        # Chuva mais grossa: aumentado de 1-2 para 2-4
+        self.width = random.uniform(2, 4)
 
     def move(self):
         self.y += self.speed
@@ -359,61 +360,6 @@ class PetalsAnimation(BaseAnimation):
 
         for p in self.particles:
             p.move()
-            val_r, val_g, val_b = int(p.alpha * r), int(p.alpha * g), int(p.alpha * b)
-            color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
-            x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size
-            self.canvas.create_oval(x1, y1, x2, y2, fill=color, outline="", tags="anim_particle")
-        
-        self.canvas.tag_lower("anim_particle")
-        if self.label_window_id: self.canvas.tag_raise(self.label_window_id)
-        self._after_id = self.canvas.after(self.DELAY, self.update_frame)
-
-# =============================================================================
-# Animação 8: Aurora/Brilho Suave
-# =============================================================================
-class AuroraParticle:
-    def __init__(self, w, h):
-        self.w, self.h = w, h
-        self.center_x = random.randint(0, self.w)
-        self.center_y = random.randint(0, self.h)
-        self.radius = random.uniform(100, 300)
-        self.angle = random.uniform(0, 6.28)
-        self.angular_speed = random.uniform(0.01, 0.03)
-        self.size = random.uniform(30, 80)
-        self.alpha = random.uniform(0.1, 0.3)
-        self.pulse_phase = random.uniform(0, 6.28)
-        self.pulse_speed = random.uniform(0.02, 0.04)
-
-    def update(self):
-        self.angle += self.angular_speed
-        self.pulse_phase += self.pulse_speed
-        pulse = 0.8 + 0.2 * math.sin(self.pulse_phase)
-        self.x = self.center_x + math.cos(self.angle) * self.radius * pulse
-        self.y = self.center_y + math.sin(self.angle) * self.radius * pulse
-        
-        if self.x < -self.size or self.x > self.w + self.size or self.y < -self.size or self.y > self.h + self.size:
-            self.center_x = random.randint(0, self.w)
-            self.center_y = random.randint(0, self.h)
-
-class AuroraAnimation(BaseAnimation):
-    NUM_PARTICLES, DELAY = 15, 40
-
-    def _recreate_particles(self, width, height):
-        self.particles = [AuroraParticle(width, height) for _ in range(self.NUM_PARTICLES)]
-    
-    def update_frame(self):
-        if not self.is_running: return
-        self.canvas.delete("anim_particle")
-        
-        color_string = getattr(self, 'particle_color', 'white')
-        try:
-            rgb_16bit = self.canvas.winfo_rgb(color_string)
-            r, g, b = rgb_16bit[0] // 256, rgb_16bit[1] // 256, rgb_16bit[2] // 256
-        except Exception:
-            r, g, b = 255, 255, 255
-
-        for p in self.particles:
-            p.update()
             val_r, val_g, val_b = int(p.alpha * r), int(p.alpha * g), int(p.alpha * b)
             color = f'#{val_r:02x}{val_g:02x}{val_b:02x}'
             x1, y1, x2, y2 = p.x - p.size, p.y - p.size, p.x + p.size, p.y + p.size

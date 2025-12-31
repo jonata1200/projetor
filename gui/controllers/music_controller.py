@@ -23,7 +23,9 @@ class MusicController:
 
         self.current_song_id = None
         # self.music_widgets agora armazena o objeto do botão e seu texto original
-        self.music_widgets = {} 
+        self.music_widgets = {}
+        # Armazena a ordem original dos IDs para restaurar quando a pesquisa estiver vazia
+        self.original_order = []
         
         self.selected_color = ("gray75", "gray40")
         self.transparent_color = "transparent"
@@ -53,6 +55,7 @@ class MusicController:
         for widget in self.view["scroll_frame"].winfo_children():
             widget.destroy()
         self.music_widgets.clear()
+        self.original_order.clear()
         
         self.current_song_id = None
         self._update_buttons_state(False)
@@ -61,6 +64,9 @@ class MusicController:
         default_text_color = ctk.ThemeManager.theme["CTkLabel"]["text_color"]
 
         for music_id, display_name in all_music:
+            # Armazena a ordem original
+            self.original_order.append(music_id)
+            
             # Busca a música completa para obter a letra
             music = self.manager.get_music_by_id(music_id)
             lyrics_full = music.get('lyrics_full', '').lower() if music else ''
@@ -89,6 +95,7 @@ class MusicController:
         """
         Filtra a lista de músicas escondendo/mostrando os widgets existentes.
         Busca tanto no título/artista quanto na letra completa da música.
+        Quando o campo de pesquisa estiver vazio, restaura a ordem original.
         Não destrói nem recria nada.
         """
         filter_term = self.view["search_entry"].get().lower().strip()
@@ -97,17 +104,33 @@ class MusicController:
         # Esconde o label de "nenhum resultado" antes de começar
         self.no_results_label.pack_forget()
 
-        for music_id, data in self.music_widgets.items():
-            widget = data['widget']
-            display_text = data['text']  # Título - Artista
-            lyrics = data.get('lyrics', '')  # Letra completa
+        # Se o campo de pesquisa estiver vazio, mostra todos na ordem original
+        if not filter_term:
+            # Remove todos os widgets do layout temporariamente
+            for music_id in self.original_order:
+                if music_id in self.music_widgets:
+                    widget = self.music_widgets[music_id]['widget']
+                    widget.pack_forget()
             
-            # Busca no título/artista OU na letra
-            if filter_term in display_text or (filter_term and filter_term in lyrics):
-                widget.pack(fill="x", padx=5, pady=2)
-                found_any = True
-            else:
-                widget.pack_forget()
+            # Reempacota todos os widgets na ordem original
+            for music_id in self.original_order:
+                if music_id in self.music_widgets:
+                    widget = self.music_widgets[music_id]['widget']
+                    widget.pack(fill="x", padx=5, pady=2)
+                    found_any = True
+        else:
+            # Filtra normalmente quando há termo de pesquisa
+            for music_id, data in self.music_widgets.items():
+                widget = data['widget']
+                display_text = data['text']  # Título - Artista
+                lyrics = data.get('lyrics', '')  # Letra completa
+                
+                # Busca no título/artista OU na letra
+                if filter_term in display_text or (filter_term and filter_term in lyrics):
+                    widget.pack(fill="x", padx=5, pady=2)
+                    found_any = True
+                else:
+                    widget.pack_forget()
 
         # Se nenhum item foi encontrado, mostra a mensagem apropriada
         if not found_any:

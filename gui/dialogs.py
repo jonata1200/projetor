@@ -330,7 +330,7 @@ class AnimationSelectionDialog(ctk.CTkToplevel):
         # Tipo de Animação
         ctk.CTkLabel(self, text="Tipo de Animação:").grid(row=1, column=0, padx=20, pady=10, sticky="w")
         animation_options = [
-            "Nenhuma", "Aurora", "Chamas", "Chuva", "Espiral",
+            "Nenhuma", "Chamas", "Chuva", "Espiral",
             "Estrelas Piscando", "Neve",
             "Partículas Flutuantes", "Partículas Pulsantes", "Pétalas", "Poças de Luz"
         ]
