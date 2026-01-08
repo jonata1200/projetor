@@ -81,14 +81,60 @@ class MainWindow(ctk.CTk):
         self.btn_next_slide = widgets['btn_next_slide']
         self.slide_indicator_label = widgets['slide_indicator_label']
         self.btn_clear_preview = widgets['btn_clear_preview']
+        
+        # Armazena referência para verificação periódica da aba
+        # Isso garante que a grade seja reconstruída se necessário quando a aba for selecionada
+        self._last_selected_tab = self.preview_tab_view.get()
+        # Inicia a verificação periódica da aba (a cada 500ms)
+        self.after(500, self._check_tab_change)
+    
+    def _check_tab_change(self):
+        """Verifica se a aba mudou e atualiza a grade se necessário."""
+        if not hasattr(self, 'preview_tab_view') or not self.preview_tab_view.winfo_exists():
+            return
+        
+        current_tab = self.preview_tab_view.get()
+        if current_tab != self._last_selected_tab:
+            self._last_selected_tab = current_tab
+            if current_tab == "Todos os Slides":
+                # Quando a aba "Todos os Slides" é selecionada, verifica se precisa reconstruir
+                if hasattr(self, 'presentation_controller') and hasattr(self.presentation_controller, 'slides'):
+                    slides = self.presentation_controller.slides
+                    current_index = getattr(self.presentation_controller, 'current_index', -1)
+                    if slides:
+                        # Verifica se a grade está vazia mas deveria ter conteúdo
+                        try:
+                            children_count = len(self.all_slides_grid_frame.winfo_children())
+                            if children_count == 0 and len(slides) > 0:
+                                self.build_all_slides_grid(slides, current_index)
+                        except Exception:
+                            # Se houver erro, tenta reconstruir mesmo assim
+                            if len(slides) > 0:
+                                self.build_all_slides_grid(slides, current_index)
+        
+        # Agenda próxima verificação (a cada 500ms)
+        self.after(500, self._check_tab_change)
 
     def build_all_slides_grid(self, slides, current_index):
         """Constrói a grade de miniaturas de slides na aba 'Todos os Slides'."""
-        for widget in self.all_slides_grid_frame.winfo_children():
-            widget.destroy()
+        # Verifica se o frame ainda existe e é válido
+        if not hasattr(self, 'all_slides_grid_frame') or not self.all_slides_grid_frame.winfo_exists():
+            return
+        
+        # Limpa widgets existentes
+        try:
+            for widget in self.all_slides_grid_frame.winfo_children():
+                widget.destroy()
+        except Exception:
+            # Se houver erro ao destruir widgets, continua mesmo assim
+            pass
+        
         self.slide_miniatures.clear()
 
-        if not slides: return
+        if not slides: 
+            # Força atualização mesmo quando não há slides
+            self.all_slides_grid_frame.update()
+            return
 
         num_columns = 3
         for i in range(num_columns):
@@ -106,8 +152,16 @@ class MainWindow(ctk.CTk):
             text_label = ctk.CTkLabel(miniature_frame, text=preview_text, font=ctk.CTkFont(size=11), wraplength=180, justify="left", anchor="nw")
             text_label.pack(fill="both", expand=True, padx=5, pady=5)
 
+            # CORREÇÃO: Usa uma função auxiliar para capturar corretamente o índice
+            def make_click_handler(slide_idx):
+                return lambda e: self.presentation_controller.go_to_slide(slide_idx)
+            
             for widget in [miniature_frame, text_label]:
-                widget.bind("<Button-1>", lambda e, idx=index: self.presentation_controller.go_to_slide(idx))
+                widget.bind("<Button-1>", make_click_handler(index))
+        
+        # Força atualização da UI para garantir que os widgets sejam exibidos
+        self.all_slides_grid_frame.update_idletasks()
+        self.all_slides_grid_frame.update()
 
     def update_miniature_highlight(self, old_index, new_index):
         """Atualiza qual miniatura está destacada."""

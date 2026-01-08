@@ -55,13 +55,25 @@ class PresentationController:
                 self._apply_style_to_projection_window()
             
             self.update_slide_view()
+            # Atualiza a grade de slides com verificação de segurança
             if hasattr(self.master, 'build_all_slides_grid'):
-                self.master.build_all_slides_grid(self.slides, self.current_index)
+                try:
+                    self.master.build_all_slides_grid(self.slides, self.current_index)
+                except Exception as e:
+                    # Se houver erro, tenta novamente após um pequeno delay
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Erro ao construir grade de slides, tentando novamente: {e}")
+                    self.master.after(100, lambda: self.master.build_all_slides_grid(self.slides, self.current_index) if hasattr(self.master, 'build_all_slides_grid') else None)
         else:
             self.current_index = -1
             self.clear_slide_view()
+            # Atualiza a grade mesmo quando não há slides
             if hasattr(self.master, 'build_all_slides_grid'):
-                self.master.build_all_slides_grid([], -1)
+                try:
+                    self.master.build_all_slides_grid([], -1)
+                except Exception:
+                    pass  # Ignora erros ao limpar a grade
         
         self.update_controls_state()
         self._update_preview_style()
