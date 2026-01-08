@@ -95,7 +95,8 @@ def create_preview_pane(master, on_resize_callback):
     slide_preview_label = ctk.CTkLabel(
         preview_frame, text="", 
         font=ctk.CTkFont(size=30, weight="bold"), 
-        justify=ctk.CENTER
+        justify=ctk.CENTER,
+        corner_radius=0  # Remove bordas arredondadas que podem afetar o espaço
     )
     slide_preview_label.place(relx=0.5, rely=0.5, anchor=ctk.CENTER)
     

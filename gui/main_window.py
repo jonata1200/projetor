@@ -265,17 +265,24 @@ class MainWindow(ctk.CTk):
         self.btn_add_to_playlist_bible = ctk.CTkButton(bottom_frame, text="Adicionar à Ordem", fg_color="sea green", hover_color="dark sea green")
         self.btn_add_to_playlist_bible.grid(row=0, column=1, padx=(5,0), sticky="ew")
 
-    # --- ALTERAÇÃO 2: NOVO MÉTODO PARA CHAMAR O CONTROLADOR QUANDO A JANELA REDIMENSIONA ---
+    # --- ALTERAÇÃO 2: MÉTODO PARA CHAMAR O CONTROLADOR QUANDO A JANELA REDIMENSIONA ---
     def _on_preview_resize(self, event):
         """
         Quando a pré-visualização muda de tamanho, atualiza o wraplength e
         avisa o controlador para recalcular o tamanho da fonte.
         """
-        # Atualiza a quebra de linha do texto
-        self.slide_preview_label.configure(wraplength=event.width * 0.95)
-        # Chama o método do controlador para ajustar a fonte
+        # Calcula o wraplength proporcional à largura da projeção
         if hasattr(self, 'presentation_controller'):
-            self.presentation_controller.update_preview_font_size(event.height)
+            # Usa a mesma proporção de largura que a projeção (90% da largura)
+            # Isso garante que o texto quebre na mesma posição que na projeção
+            # Matematicamente: (projection_width * 0.9) * (event.width / projection_width) = event.width * 0.9
+            wraplength = int(event.width * 0.9)
+            self.slide_preview_label.configure(wraplength=wraplength)
+            # Chama o método do controlador para ajustar a fonte com largura e altura
+            self.presentation_controller.update_preview_font_size(event.width, event.height)
+        else:
+            # Fallback se o controlador ainda não foi criado
+            self.slide_preview_label.configure(wraplength=int(event.width * 0.9))
 
     def _init_controllers(self):
         """Agrupa os widgets e instancia os controladores, conectando-os."""

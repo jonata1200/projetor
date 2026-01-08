@@ -111,9 +111,10 @@ class PresentationController:
             self.ui["animation_indicator"].configure(fg_color="transparent")
         
         # Força o recálculo da fonte com base no tamanho atual
+        current_width = self.ui["preview_frame"].winfo_width()
         current_height = self.ui["preview_frame"].winfo_height()
-        if current_height > 1: # Garante que o widget já tenha sido desenhado
-            self.update_preview_font_size(current_height)
+        if current_height > 1 and current_width > 1: # Garante que o widget já tenha sido desenhado
+            self.update_preview_font_size(current_width, current_height)
 
     def _get_style_config_for_current_content(self):
         content_map = {"music": "Projection_Music", "bible": "Projection_Bible", "text": "Projection_Text"}
@@ -146,28 +147,93 @@ class PresentationController:
         if self.projection_window and self.projection_window.winfo_exists():
             self._apply_style_to_projection_window()
 
-    # --- ALTERAÇÃO 2: NOVO MÉTODO PARA A FONTE PROPORCIONAL ---
-    def update_preview_font_size(self, current_height):
+    # --- ALTERAÇÃO 2: MÉTODO PARA CALCULAR FONTE PROPORCIONAL À ESCALA DA PROJEÇÃO ---
+    def update_preview_font_size(self, current_width, current_height):
         """
-        Calcula e aplica um tamanho de fonte proporcional à altura do painel de pré-visualização.
-        """
-        if current_height <= 1: return # Evita cálculos se o widget não for visível
-
-        # Fator de proporção: um valor maior resulta em fonte menor.
-        # 12 a 15 geralmente funcionam bem.
-        PROPORTION_FACTOR = 14
+        Calcula e aplica um tamanho de fonte proporcional à escala da janela de projeção.
+        A pré-visualização representa a mesma escala visual da projeção real.
         
-        # Calcula o novo tamanho, garantindo um tamanho mínimo de 8.
-        new_size = max(8, int(current_height / PROPORTION_FACTOR))
+        Usa a escala da altura para calcular o tamanho da fonte, pois a altura é mais
+        relevante para determinar o tamanho visual do texto. O wraplength já é ajustado
+        separadamente para manter a proporção correta da largura.
+        """
+        if current_height <= 1 or current_width <= 1: 
+            return # Evita cálculos se o widget não for visível
+
+        # Obtém o tamanho da fonte configurado para a projeção
+        style_config = self._get_style_config_for_current_content()
+        projection_font_size = style_config.get('font_size', 60)
+        
+        # Obtém a altura da janela de projeção (ou monitor de destino)
+        projection_height = self._get_projection_height()
+        
+        if projection_height <= 0:
+            # Se não conseguir obter a altura da projeção, usa um cálculo proporcional simples
+            PROPORTION_FACTOR = 14
+            new_size = max(8, int(current_height / PROPORTION_FACTOR))
+        else:
+            # Calcula a escala baseada na altura (mais relevante para o tamanho da fonte)
+            scale_factor = current_height / projection_height
+            
+            # Calcula o tamanho da fonte baseado na escala da altura
+            # Isso garante que o texto tenha o mesmo tamanho relativo à altura da tela
+            # Usa arredondamento em vez de truncamento para maior precisão
+            new_size = max(8, round(projection_font_size * scale_factor))
         
         # Aplica a nova fonte ao label de pré-visualização
         self.ui["preview_label"].configure(font=ctk.CTkFont(size=new_size, weight="bold"))
+    
+    def _get_projection_height(self):
+        """
+        Obtém a altura da janela de projeção ou do monitor de destino.
+        Retorna 0 se não conseguir determinar.
+        """
+        # Se a janela de projeção já estiver aberta, usa sua altura real
+        if self.projection_window and self.projection_window.winfo_exists():
+            height = self.projection_window.winfo_height()
+            if height > 1:
+                return height
+        
+        # Caso contrário, tenta obter a altura do monitor de destino
+        try:
+            monitors = get_monitors()
+            target_monitor = monitors[1] if len(monitors) > 1 else monitors[0]
+            return target_monitor.height
+        except (IndexError, Exception):
+            # Se não conseguir obter, retorna 0 para usar cálculo alternativo
+            return 0
+    
+    def _get_projection_width(self):
+        """
+        Obtém a largura da janela de projeção ou do monitor de destino.
+        Retorna 0 se não conseguir determinar.
+        """
+        # Se a janela de projeção já estiver aberta, usa sua largura real
+        if self.projection_window and self.projection_window.winfo_exists():
+            width = self.projection_window.winfo_width()
+            if width > 1:
+                return width
+        
+        # Caso contrário, tenta obter a largura do monitor de destino
+        try:
+            monitors = get_monitors()
+            target_monitor = monitors[1] if len(monitors) > 1 else monitors[0]
+            return target_monitor.width
+        except (IndexError, Exception):
+            # Se não conseguir obter, retorna 0 para usar cálculo alternativo
+            return 0
 
     def update_slide_view(self):
         if 0 <= self.current_index < len(self.slides):
             slide_text = self.slides[self.current_index]
             self.ui["preview_label"].configure(text=slide_text)
             self.ui["indicator_label"].configure(text=f"{self.current_index + 1} / {len(self.slides)}")
+            
+            # Atualiza a fonte após mudar o texto para garantir escala correta
+            current_width = self.ui["preview_frame"].winfo_width()
+            current_height = self.ui["preview_frame"].winfo_height()
+            if current_height > 1 and current_width > 1:
+                self.update_preview_font_size(current_width, current_height)
             
             if self.projection_window and self.projection_window.winfo_exists():
                 self.projection_window.update_content(slide_text)
@@ -254,7 +320,13 @@ class PresentationController:
     def _on_projection_window_ready(self):
         self.update_projection_buttons_state()
         self._apply_style_to_projection_window()
-        self.update_slide_view() 
+        self.update_slide_view()
+        # Atualiza a pré-visualização quando a janela de projeção é aberta
+        # para garantir que a escala seja recalculada com as dimensões reais
+        current_width = self.ui["preview_frame"].winfo_width()
+        current_height = self.ui["preview_frame"].winfo_height()
+        if current_height > 1 and current_width > 1:
+            self.update_preview_font_size(current_width, current_height) 
     
     def close_projection_window(self):
         if self.projection_window and self.projection_window.winfo_exists():
